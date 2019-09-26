@@ -1,0 +1,59 @@
+<!DOCTYPE>
+<html>
+<head>
+	<title>Promise Study</title>
+</head>
+<body>
+	<input type="button" id="btn" value="영화정보받기"/>
+	<p id="show"></p>
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+	<script type="text/javascript">
+		// 초기설정
+		var btn = document.getElementById("btn"); 
+		btn.addEventListener("click",btnClick,false);
+		$('#show').html("버튼을 클릭하면 영화정보를 받을 수 있습니다.");
+
+		// 버튼을 클릭했을 시에 프로미스를 사용하여 then 으로 resolve를 받음
+		function btnClick(){
+			// resolve 사용
+			getMovieInfo().then(function(result){
+				$('#show').html(result);
+			});
+		}
+
+		// 프로미스 사용
+		function getMovieInfo(){
+			$('#show').html("서버로부터 정보를 받아오고 있습니다 ...");
+			return new Promise(function(resolve, reject){
+				$.ajax({
+					type:"GET",
+					url:"http://www.kobis.or.kr/kobisopenapi/webservice/rest/boxoffice/searchWeeklyBoxOfficeList.json?key=430156241533f1d058c603178cc3ca0e&targetDt=20190901",
+					success: function(data){
+						//var parseString = JSON.stringify(data);
+						//resolve(parseString);
+						resolve(resultParsing(data));
+					}
+				});
+			});
+		}
+
+		// 파싱하기
+		function resultParsing(data){
+			var movieDO = data.boxOfficeResult.weeklyBoxOfficeList;
+			var index = 1;
+			var movieList = "";
+
+			for(var i in movieDO){
+				var temp = index+"위  "+JSON.stringify(movieDO[i].movieNm)+"<br>";
+				var movieList = movieList + temp;
+				//console.log(movieList);
+				//console.log(index+"위 : "+movieDO[i].movieNm);
+				index++;
+			}
+			return movieList;
+		}
+
+	</script>
+</body>
+</html>
