@@ -10,17 +10,33 @@
         android:id="@+id/preview"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="visible"/>
+        android:visibility="visible"
+        android:layout_above="@+id/bottomBar"/>
 
-    <androidx.cardview.widget.CardView
-        android:id="@+id/shotBtn"
-        android:layout_width="70dp"
-        android:layout_height="70dp"
-        app:cardCornerRadius="35dp"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="20dp"
-        app:cardElevation="10dp">
-    </androidx.cardview.widget.CardView>
+    <RelativeLayout
+        android:id="@+id/bottomBar"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:background="#000000"
+        android:layout_alignParentBottom="true">
+        <Button
+            android:id="@+id/shotBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_centerVertical="true"
+            android:text="cheese~~!!">
+        </Button>
+
+        <ImageView
+            android:id="@+id/thumbnail"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_alignParentRight="true"
+            android:layout_marginRight="10dp"
+            android:layout_centerVertical="true"
+            android:src="#ACACAC"/>
+
+    </RelativeLayout>
 
 </RelativeLayout>

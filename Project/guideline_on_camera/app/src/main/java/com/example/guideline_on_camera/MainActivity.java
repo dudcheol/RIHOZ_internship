@@ -3,10 +3,9 @@ package com.example.guideline_on_camera;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.content.Context;
+import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
-import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -19,8 +18,6 @@ import com.example.guideline_on_camera.network.NetworkClient;
 
 import java.io.File;
 
-import javax.xml.transform.Result;
-
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
@@ -31,6 +28,7 @@ import retrofit2.Retrofit;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final String TAG = "MAIN_LOG";
     private static int REQUEST_IMAGE_GET = 1000;
     private Button btn, sendImg;
     private ImageView selectedImage;
@@ -87,15 +85,15 @@ public class MainActivity extends AppCompatActivity {
                 if (response.isSuccessful()){
                     Log.i("정민님의 응답",response.message());
                     Log.i("정민님의 응답",response.toString());
-                    Toast.makeText(MainActivity.this, "Response : 업로드 성공", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "Response : 업로드 성공", Toast.LENGTH_SHORT).show();
                 }else{
-                    Toast.makeText(MainActivity.this, "Response : 업로드 실패", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "Response : 업로드 실패", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call call, Throwable t) {
-                Toast.makeText(MainActivity.this, "Fail : 업로드 실패", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "Fail : 업로드 실패", Toast.LENGTH_SHORT).show();
                 Log.e("Fail",t.getMessage());
             }
         });
@@ -109,7 +107,9 @@ public class MainActivity extends AppCompatActivity {
                 Uri rcvImageUri = data.getData();
                 if(rcvImageUri != null){
                     selectedImage.setImageURI(rcvImageUri);
+                    Log.i(TAG,rcvImageUri.toString());
                     uploadImageToServer(getRealPathFromURI(rcvImageUri));
+                    Log.i(TAG,getRealPathFromURI(rcvImageUri));
                 }else{
                     Toast.makeText(this, "사진첩에서 이미지를 받아오는데 실패했습니다. 다시 시도해주세요.", Toast.LENGTH_SHORT).show();
                 }

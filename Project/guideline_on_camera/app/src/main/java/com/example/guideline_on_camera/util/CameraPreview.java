@@ -1,5 +1,6 @@
 package com.example.guideline_on_camera.util;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.hardware.Camera;
@@ -25,10 +26,9 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         this.context = context;
         mCamera = CameraActivity.getCamera();
         if(mCamera == null){
-            mCamera = Camera.open(0);
+            mCamera = Camera.open(Camera.CameraInfo.CAMERA_FACING_FRONT);
         }
         listPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
-
     }
 
     //  SurfaceView 생성시 호출
@@ -50,9 +50,9 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
                 mCamera.setDisplayOrientation(90);
                 parameters.setRotation(90);
             } else {
-                parameters.set("orientation", "landscape");
-                mCamera.setDisplayOrientation(0);
-                parameters.setRotation(0);
+                parameters.set("orientation", "portrait");
+                mCamera.setDisplayOrientation(90);
+                parameters.setRotation(90);
             }
             mCamera.setParameters(parameters);
 
@@ -89,20 +89,21 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             Camera.Parameters parameters = mCamera .getParameters();
 
             // 화면 회전시 사진 회전 속성을 맞추기 위해 설정한다.
-            int rotation = CameraActivity.getInstance.getWindowManager().getDefaultDisplay().getRotation();
-            if (rotation == Surface.ROTATION_0) {
-                mCamera .setDisplayOrientation(90);
-                parameters.setRotation(90);
-            }else if(rotation == Surface.ROTATION_90){
-                mCamera .setDisplayOrientation(0);
-                parameters.setRotation(0);
-            }else if(rotation == Surface.ROTATION_180){
-                mCamera .setDisplayOrientation(270);
-                parameters.setRotation(270);
-            }else{
-                mCamera .setDisplayOrientation(180);
-                parameters.setRotation(180);
-            }
+            setCameraDisplayOrientation(CameraActivity.getInstance,Camera.CameraInfo.CAMERA_FACING_FRONT,mCamera);
+//            int rotation = CameraActivity.getInstance.getWindowManager().getDefaultDisplay().getRotation();
+//            if (rotation == Surface.ROTATION_0) {
+//                mCamera .setDisplayOrientation(90);
+//                parameters.setRotation(90);
+//            }else if(rotation == Surface.ROTATION_90){
+//                mCamera .setDisplayOrientation(0);
+//                parameters.setRotation(0);
+//            }else if(rotation == Surface.ROTATION_180){
+//                mCamera .setDisplayOrientation(270);
+//                parameters.setRotation(270);
+//            }else{
+//                mCamera .setDisplayOrientation(180);
+//                parameters.setRotation(180);
+//            }
 
             // 변경된 화면 넓이를 설정한다.
             parameters.setPreviewSize(previewSize.width, previewSize.height);
@@ -175,5 +176,30 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         }
 
         return optimalSize;
+    }
+
+    public static void setCameraDisplayOrientation(Activity activity,
+                                                   int cameraId, android.hardware.Camera camera) {
+        android.hardware.Camera.CameraInfo info =
+                new android.hardware.Camera.CameraInfo();
+        android.hardware.Camera.getCameraInfo(cameraId, info);
+        int rotation = activity.getWindowManager().getDefaultDisplay()
+                .getRotation();
+        int degrees = 0;
+        switch (rotation) {
+            case Surface.ROTATION_0: degrees = 0; break;
+            case Surface.ROTATION_90: degrees = 90; break;
+            case Surface.ROTATION_180: degrees = 180; break;
+            case Surface.ROTATION_270: degrees = 270; break;
+        }
+
+        int result;
+        if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            result = (info.orientation + degrees) % 360;
+            result = (360 - result) % 360;  // compensate the mirror
+        } else {  // back-facing
+            result = (info.orientation - degrees + 360) % 360;
+        }
+        camera.setDisplayOrientation(result);
     }
 }
