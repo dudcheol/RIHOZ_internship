@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Animation TEST</title>
+    <style>
+    .page {
+        width: 500px;
+        margin: 20px auto;
+    }
+
+    .box {
+        border: 2px solid red;
+        width: 200px;
+        height: 200px;
+    }
+
+    .page {
+
+        -webkit-transition-duration: 2s;
+        -moz-transition-duration: 2s;
+        -ms-transition-duration: 2s;
+        -o-transition-duration: 2s;
+        transition-duration: 2s;
+    }
+
+    .page:hover {
+        -webkit-transform: translateX(100px) translate(100px);
+        -moz-transform: translateX(100px) translate(100px);
+        -ms-transform: translateX(100px) translate(100px);
+        -o-transform: translateX(100px) translate(100px);
+        transform: translateX(100px) translate(100px);
+    }
+
+    .box {
+        border: 2px solid red;
+        width: 200px;
+        height: 200px;
+        -webkit-transition-duration: 2s;
+        -moz-transition-duration: 2s;
+        -ms-transition-duration: 2s;
+        -o-transition-duration: 2s;
+        transition-duration: 2s;
+
+        -webkit-transform: scale(1.0);
+        -moz-transform: scale(1.0);
+        -ms-transform: scale(1.0);
+        -o-transform: scale(1.0);
+        transform: scale(1.0);
+    }
+
+    .box:hover {
+        -webkit-transform: scale(0.5);
+        -moz-transform: scale(0.5);
+        -ms-transform: scale(0.5);
+        -o-transform: scale(0.5);
+        transform: scale(0.5);
+    }
+    </style>
+</head>
+
+<body>
+    <div class="page">
+        <img src="https://placeimg.com/200/200/tech" id="img" alt="" />
+    </div>
+    <div class="box">
+    	<img src="https://placeimg.com/200/200/tech" id="img" alt="" />
+    </div>
+
+
+</body>
+
+</html>
