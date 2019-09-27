@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.hardware.Camera;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -26,7 +27,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         this.context = context;
         mCamera = CameraActivity.getCamera();
         if(mCamera == null){
-            mCamera = Camera.open(Camera.CameraInfo.CAMERA_FACING_FRONT);
+            mCamera = Camera.open();
         }
         listPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
     }
@@ -45,15 +46,16 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             Camera.Parameters parameters = mCamera .getParameters();
 
             // 카메라의 회전이 가로/세로일때 화면을 설정한다.
-            if (getResources().getConfiguration().orientation != Configuration.ORIENTATION_LANDSCAPE) {
-                parameters.set("orientation", "portrait");
-                mCamera.setDisplayOrientation(90);
-                parameters.setRotation(90);
-            } else {
-                parameters.set("orientation", "portrait");
-                mCamera.setDisplayOrientation(90);
-                parameters.setRotation(90);
-            }
+            setCameraDisplayOrientation(CameraActivity.getInstance,Camera.CameraInfo.CAMERA_FACING_FRONT,mCamera);
+//            if (getResources().getConfiguration().orientation != Configuration.ORIENTATION_LANDSCAPE) {
+//                parameters.set("orientation", "portrait");
+//                mCamera.setDisplayOrientation(90);
+//                parameters.setRotation(90);
+//            } else {
+//                parameters.set("orientation", "portrait");
+//                mCamera.setDisplayOrientation(90);
+//                parameters.setRotation(90);
+//            }
             mCamera.setParameters(parameters);
 
             mCamera.setPreviewDisplay(surfaceHolder);
@@ -89,21 +91,20 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             Camera.Parameters parameters = mCamera .getParameters();
 
             // 화면 회전시 사진 회전 속성을 맞추기 위해 설정한다.
-            setCameraDisplayOrientation(CameraActivity.getInstance,Camera.CameraInfo.CAMERA_FACING_FRONT,mCamera);
-//            int rotation = CameraActivity.getInstance.getWindowManager().getDefaultDisplay().getRotation();
-//            if (rotation == Surface.ROTATION_0) {
-//                mCamera .setDisplayOrientation(90);
-//                parameters.setRotation(90);
-//            }else if(rotation == Surface.ROTATION_90){
-//                mCamera .setDisplayOrientation(0);
-//                parameters.setRotation(0);
-//            }else if(rotation == Surface.ROTATION_180){
-//                mCamera .setDisplayOrientation(270);
-//                parameters.setRotation(270);
-//            }else{
-//                mCamera .setDisplayOrientation(180);
-//                parameters.setRotation(180);
-//            }
+            int rotation = CameraActivity.getInstance.getWindowManager().getDefaultDisplay().getRotation();
+            if (rotation == Surface.ROTATION_0) {
+                mCamera .setDisplayOrientation(90);
+                parameters.setRotation(90);
+            }else if(rotation == Surface.ROTATION_90){
+                mCamera .setDisplayOrientation(0);
+                parameters.setRotation(0);
+            }else if(rotation == Surface.ROTATION_180){
+                mCamera .setDisplayOrientation(270);
+                parameters.setRotation(270);
+            }else{
+                mCamera .setDisplayOrientation(180);
+                parameters.setRotation(180);
+            }
 
             // 변경된 화면 넓이를 설정한다.
             parameters.setPreviewSize(previewSize.width, previewSize.height);
@@ -202,4 +203,5 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         }
         camera.setDisplayOrientation(result);
     }
+
 }

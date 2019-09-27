@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.hardware.Camera;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -33,6 +34,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Objects;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -47,6 +49,7 @@ public class CameraActivity extends AppCompatActivity {
     public static final int MEDIA_TYPE_IMAGE = 1;
     public static final int MEDIA_TYPE_VIDEO = 2;
     public static final String TAG = "CAMERA_LOG";
+    private int FRONT_CAMERA_ID;
 
     private static CameraPreview surfaceView;
     private SurfaceHolder holder;
@@ -73,6 +76,7 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void InitSetting() {
+        FRONT_CAMERA_ID = findFrontSideCamera();
         CameraSetting();
         requestPermissionCamera();
         // setcontentview 다음에 find
@@ -84,14 +88,14 @@ public class CameraActivity extends AppCompatActivity {
         shotBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                switch(previewState) {
+                switch (previewState) {
                     case CAMERA_STATE_FROZEN:
                         mCamera.startPreview();
                         previewState = CAMERA_STATE_PREVIEW;
                         break;
 
                     default:
-                        mCamera.takePicture( null, null, mPicture );
+                        mCamera.takePicture(null, null, mPicture);
                         previewState = CAMERA_STATE_BUSY;
 
                 } // switch
@@ -104,7 +108,7 @@ public class CameraActivity extends AppCompatActivity {
         public void onPictureTaken(byte[] data, Camera camera) {
 
             File pictureFile = getOutputMediaFile(MEDIA_TYPE_IMAGE);
-            if (pictureFile == null){
+            if (pictureFile == null) {
                 Log.d(TAG, "Error creating media file, check storage permissions");
                 return;
             }
@@ -120,30 +124,42 @@ public class CameraActivity extends AppCompatActivity {
             }
 
             Uri tempImgURI = getOutputMediaFileUri(MEDIA_TYPE_IMAGE);
-            Log.i(TAG,tempImgURI.toString());
+            Log.i(TAG, tempImgURI.toString());
+
+            // 찍은 사진 미리보기
             thumbnail.setImageURI(tempImgURI);
+            // 찍은 사진이 갤러리에도 추가하도록 한다
             galleryAddPic(tempImgURI);
-            uploadImageToServer(changeUriForFileNameForm(tempImgURI));
+
+            // 찍은 사진의 회전값 조회
+            String thumbnail_uri_real_path = changeUriForFileNameForm(tempImgURI);
+
+            // 서버로 사진 업로드
+            uploadImageToServer(thumbnail_uri_real_path, checkExifOrientation(thumbnail_uri_real_path));
         }
     };
 
-    /** 이미지나 비디오 파일을 저장하기 위한 uri 생성  */
-    private static Uri getOutputMediaFileUri(int type){
+    /**
+     * 이미지나 비디오 파일을 저장하기 위한 uri 생성
+     */
+    private static Uri getOutputMediaFileUri(int type) {
         return Uri.fromFile(getOutputMediaFile(type));
     }
 
-    /** 이미지나 비디오 파일을 저장하기 위한 파일 생성 */
-    private static File getOutputMediaFile(int type){
+    /**
+     * 이미지나 비디오 파일을 저장하기 위한 파일 생성
+     */
+    private static File getOutputMediaFile(int type) {
         // Todo : 안전을 위해 이 메소드를 사용하기 전에 SDcard가 마운트 되어있는지 체크할 필요가 있음 => Environment.getExternalStorageState()
 
         File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_PICTURES), "");
+                Environment.DIRECTORY_PICTURES), "guideline_on_camera");
         // This location works best if you want the created images to be shared
         // between applications and persist after your app has been uninstalled.
 
         // Create the storage directory if it does not exist
-        if (! mediaStorageDir.exists()){
-            if (! mediaStorageDir.mkdirs()){
+        if (!mediaStorageDir.exists()) {
+            if (!mediaStorageDir.mkdirs()) {
                 Log.d(TAG, "failed to create directory");
                 return null;
             }
@@ -152,12 +168,12 @@ public class CameraActivity extends AppCompatActivity {
         // 미디어 파일 생성
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         File mediaFile;
-        if (type == MEDIA_TYPE_IMAGE){
+        if (type == MEDIA_TYPE_IMAGE) {
             mediaFile = new File(mediaStorageDir.getPath() + File.separator +
-                    "guideline_IMG_"+ timeStamp + ".jpg");
-        } else if(type == MEDIA_TYPE_VIDEO) {
+                    "guideline_IMG_" + timeStamp + ".jpg");
+        } else if (type == MEDIA_TYPE_VIDEO) {
             mediaFile = new File(mediaStorageDir.getPath() + File.separator +
-                    "guideline_VID_"+ timeStamp + ".mp4");
+                    "guideline_VID_" + timeStamp + ".mp4");
         } else {
             return null;
         }
@@ -240,7 +256,7 @@ public class CameraActivity extends AppCompatActivity {
         this.sendBroadcast(mediaScanIntent);
     }
 
-    private void uploadImageToServer(String imagePath) {
+    private void uploadImageToServer(String imagePath, String orientation) {
         Retrofit retrofit = NetworkClient.getRetrofitClient(this);
 
         NetworkClient.UploadAPIs uploadAPIs = retrofit.create(NetworkClient.UploadAPIs.class);
@@ -249,36 +265,46 @@ public class CameraActivity extends AppCompatActivity {
         File file = new File(imagePath);
 
         // 미디어타입 '이미지'인 리퀘스트 바디 생성
-        RequestBody fileReqBody = RequestBody.create(MediaType.parse("image/*"),file);
+        RequestBody fileReqBody = RequestBody.create(MediaType.parse("image/*"), file);
 
         // 리퀘스트 바디와 파일명, part명을 사용해서 멀티파트바디 생성
-        MultipartBody.Part part = MultipartBody.Part.createFormData("userfile",file.getName(),fileReqBody);
+        MultipartBody.Part part = MultipartBody.Part.createFormData("userfile", file.getName(), fileReqBody);
 
         // 텍스트 설명과 텍스트 미디어 타입을 사용해서 리퀘스트 바디 생성
-        RequestBody description = RequestBody.create(MediaType.parse("multipart/form-data"),"android");
+        RequestBody description = RequestBody.create(MediaType.parse("multipart/form-data"), "android");
+
+        // exif orientation 바디 생성
+        RequestBody exif_orientation = RequestBody.create(MediaType.parse("text"),orientation);
+
+        // Todo : orientation도 함께 서버로 보내기
+        //  checkExifOrientation() 로 반환받을 수 있음 null일경우 에러처리도 할 것
+
         Call call = uploadAPIs.uploadImage(part, description);
 
         call.enqueue(new Callback() {
             @Override
             public void onResponse(Call call, Response response) {
-                if (response.isSuccessful()){
-                    Log.i("정민님의 응답",response.message());
-                    Log.i("정민님의 응답",response.toString());
+                if (response.isSuccessful()) {
+                    Log.i("정민님의 응답", response.message());
+                    Log.i("정민님의 응답", response.toString());
                     Toast.makeText(getApplicationContext(), "Response : 업로드 성공", Toast.LENGTH_SHORT).show();
-                }else{
-                    Toast.makeText(getApplicationContext(), "Response : 업로드 실패", Toast.LENGTH_SHORT).show();
+                    Log.i("response_upload_fail", response.message());
+                } else {
+                    Toast.makeText(getApplicationContext(), "Error Response : " + response.message(), Toast.LENGTH_SHORT).show();
+                    Log.e("response_upload_fail", response.message());
+                    Log.e("response_upload_fail", response.errorBody().toString());
                 }
             }
 
             @Override
             public void onFailure(Call call, Throwable t) {
                 Toast.makeText(getApplicationContext(), "Fail : 업로드 실패", Toast.LENGTH_SHORT).show();
-                Log.e("Fail",t.getMessage());
+                Log.e("Fail", Objects.requireNonNull(t.getMessage()));
             }
         });
     }
 
-    private String changeUriForFileNameForm(Uri uri){
+    private String changeUriForFileNameForm(Uri uri) {
         //Todo : 기기별로 저장위치가 다를 수 있으므로 확인해봐야함
         //  일단 테스트중인 기기에선 가능하게 만듬
         String rcvUri = uri.toString();
@@ -286,8 +312,40 @@ public class CameraActivity extends AppCompatActivity {
         int targetNum = rcvUri.indexOf("/storage/");
         resultUri = rcvUri.substring(targetNum);
 
-        Log.i(TAG,resultUri);
+        Log.i(TAG, resultUri);
 
         return resultUri;
+    }
+
+    private int findFrontSideCamera() {
+        int cameraId = -1;
+        int numberOfCameras = Camera.getNumberOfCameras();
+
+        for (int i = 0; i < numberOfCameras; i++) {
+            Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
+            Camera.getCameraInfo(i, cameraInfo);
+
+            if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                cameraId = i;
+                break;
+            }
+        }
+
+        Log.i("front_camera", cameraId + "");
+        return cameraId;
+    }
+
+    private String checkExifOrientation(String filepath) {
+        String exif_orientation;
+        try {
+            ExifInterface exif = new ExifInterface(filepath);
+            exif_orientation = exif.getAttribute(ExifInterface.TAG_ORIENTATION);
+            Log.i("EXIF", exif.getAttribute(ExifInterface.TAG_ORIENTATION));
+            return exif_orientation;
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Error!", Toast.LENGTH_LONG).show();
+        }
+        return null;
     }
 }
