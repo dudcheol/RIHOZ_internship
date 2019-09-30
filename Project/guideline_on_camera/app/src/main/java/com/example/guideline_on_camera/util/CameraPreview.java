@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.List;
 
 public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
+    private String TAG = "CameraPreview_Log";
     private Camera mCamera;
     private SurfaceHolder mHolder;
     public List<Camera.Size> listPreviewSizes;
@@ -37,11 +38,12 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     //  SurfaceView 생성시 호출
     @Override
     public void surfaceCreated(SurfaceHolder surfaceHolder) {
+        Log.i(TAG,"surfaceCreate 호출");
 
         try {
             // 카메라 객체를 사용할 수 있게 연결한다.
-            if(mCamera  == null){
-                mCamera  = Camera.open();
+            if(mCamera == null){
+                mCamera = Camera.open();
             }
 
             // 카메라 설정
@@ -82,6 +84,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     // SurfaceView 의 크기가 바뀌면 호출
     @Override
     public void surfaceChanged(SurfaceHolder surfaceHolder, int i, int w, int h) {
+        Log.i(TAG,"surfaceChanged 호출");
 
         // 카메라 화면을 회전 할 때의 처리
         if (surfaceHolder.getSurface() == null){
@@ -94,8 +97,9 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
             Camera.Parameters parameters = mCamera .getParameters();
 
+            setCameraDisplayOrientation(CameraActivity.getInstance,Camera.CameraInfo.CAMERA_FACING_FRONT,mCamera);
             // 화면 회전시 사진 회전 속성을 맞추기 위해 설정한다.
-            int rotation = CameraActivity.getInstance.getWindowManager().getDefaultDisplay().getRotation();
+            /*int rotation = CameraActivity.getInstance.getWindowManager().getDefaultDisplay().getRotation();
             if (rotation == Surface.ROTATION_0) {
                 mCamera .setDisplayOrientation(90);
                 parameters.setRotation(90);
@@ -108,7 +112,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             }else{
                 mCamera .setDisplayOrientation(180);
                 parameters.setRotation(180);
-            }
+            }*/
 
             // 변경된 화면 넓이를 설정한다.
             parameters.setPreviewSize(previewSize.width, previewSize.height);
@@ -126,6 +130,8 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     // SurfaceView가 종료시 호출
     @Override
     public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
+        Log.i(TAG,"surfaceDestroyed 호출");
+
         if(mCamera != null){
             // 카메라 미리보기를 종료한다.
             this.getHolder().removeCallback(this);
@@ -148,6 +154,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             previewSize = getPreviewSize(listPreviewSizes, width, height);
         }
     }
+
     public Camera.Size getPreviewSize(List<Camera.Size> sizes, int w, int h) {
 
         final double ASPECT_TOLERANCE = 0.1;
@@ -209,5 +216,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         }
         camera.setDisplayOrientation(result);
     }
+
+
 
 }

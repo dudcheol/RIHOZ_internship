@@ -53,7 +53,7 @@ public class CameraActivity extends AppCompatActivity {
     public static final String TAG = "CAMERA_LOG";
     private int FRONT_CAMERA_ID;
 
-    private static CameraPreview surfaceView;
+    private CameraPreview surfaceView;
     private SurfaceHolder holder;
     private static Button camera_preview_button;
     private static Camera mCamera;
@@ -65,8 +65,12 @@ public class CameraActivity extends AppCompatActivity {
     private final int CAMERA_STATE_PREVIEW = 3;
 
     private Button shotBtn,saveBtn,retryBtn;
-    private ImageView thumbnail;
+    private ImageView thumbnail,guideLine;
 
+    private int CAMERA_POSITION;
+
+    // Todo 1 : 저장안눌렀을땐 삭제하기
+    // Todo 2 : 저장자체를 할때 회전되지 않게 하기
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,16 +82,9 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void InitSetting() {
-        FRONT_CAMERA_ID = findFrontSideCamera();
-        CameraSetting();
+        CAMERA_POSITION = Camera.CameraInfo.CAMERA_FACING_BACK;
+        fullScreenSetting();
         requestPermissionCamera();
-        // setcontentview 다음에 find
-        shotBtn = findViewById(R.id.shotBtn);
-        saveBtn = findViewById(R.id.saveBtn);
-        retryBtn = findViewById(R.id.retryBtn);
-        thumbnail = findViewById(R.id.thumbnail);
-
-        takePicture();
     }
 
     private void takePicture() {
@@ -110,6 +107,7 @@ public class CameraActivity extends AppCompatActivity {
         });
     }
 
+    // takePicture 콜백 메서드
     private Camera.PictureCallback mPicture = new Camera.PictureCallback() {
         @Override
         public void onPictureTaken(byte[] data, Camera camera) {
@@ -182,7 +180,7 @@ public class CameraActivity extends AppCompatActivity {
         return mCamera;
     }
 
-    private void CameraSetting() {
+    private void fullScreenSetting() {
         // 카메라 프리뷰를 전체화면으로 보여주기 위해 셋팅한다.
         supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
@@ -213,7 +211,7 @@ public class CameraActivity extends AppCompatActivity {
         getInstance = this;
 
         // 카메라 객체를 SurfaceView에서 먼저 정의해야 함으로 setContentView 보다 먼저 정의한다.
-        mCamera = Camera.open();
+        mCamera = Camera.open(CAMERA_POSITION);
 
         setContentView(R.layout.activity_camera);
 
@@ -225,6 +223,14 @@ public class CameraActivity extends AppCompatActivity {
         holder = surfaceView.getHolder();
         holder.addCallback(surfaceView);
         holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+
+        shotBtn = findViewById(R.id.shotBtn);
+        saveBtn = findViewById(R.id.saveBtn);
+        retryBtn = findViewById(R.id.retryBtn);
+        thumbnail = findViewById(R.id.thumbnail);
+        guideLine = findViewById(R.id.guideLine);
+
+        takePicture();
     }
 
     @Override
@@ -313,24 +319,6 @@ public class CameraActivity extends AppCompatActivity {
         return resultUri;
     }
 
-    private int findFrontSideCamera() {
-        int cameraId = -1;
-        int numberOfCameras = Camera.getNumberOfCameras();
-
-        for (int i = 0; i < numberOfCameras; i++) {
-            Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
-            Camera.getCameraInfo(i, cameraInfo);
-
-            if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                cameraId = i;
-                break;
-            }
-        }
-
-        Log.i("front_camera", cameraId + "");
-        return cameraId;
-    }
-
     private void changeDisplay_PICUTURED_STATE(Uri uri) {
         // 찍은 사진의 실제 경로를 구함
         String thumbnail_uri_real_path = changeUriForFileNameForm(uri);
@@ -368,80 +356,26 @@ public class CameraActivity extends AppCompatActivity {
 
     private void displaySetting_CAPTURING_STATE(){
         // 카메라 프리뷰를 다시 시작함
-        if (mCamera == null){
-            mCamera = getCameraInstance();
-        }
-        if ( surfaceView == null ){
-            holder = surfaceView.getHolder();
-            holder.addCallback(surfaceView);
-            holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-        }
+        setInit();
 
-        surfaceView.setVisibility(View.VISIBLE);
+        guideLine.setVisibility(View.VISIBLE);
         thumbnail.setVisibility(View.GONE);
         retryBtn.setVisibility(View.GONE);
         saveBtn.setVisibility(View.GONE);
         shotBtn.setText("cheese~~!!");
+
         takePicture();
     }
 
     private void displaySetting_CAPTURED_STATE(){
         // 카메라 프리뷰를 멈춤
-//        surfaceView.surfaceDestroyed(holder);
-//        surfaceView.getHolder().removeCallback(surfaceView);
-        if (mCamera != null) {
-            mCamera.stopPreview();
-            mCamera.release();
-            mCamera = null;
-        }
+        surfaceView.surfaceDestroyed(holder);
 
-        if (surfaceView != null) {
-            surfaceView = null;
-        }
-
-        //surfaceView.setVisibility(View.GONE);
+        guideLine.setVisibility(View.GONE);
         thumbnail.setVisibility(View.VISIBLE);
         retryBtn.setVisibility(View.VISIBLE);
         saveBtn.setVisibility(View.VISIBLE);
         shotBtn.setText("서버 전송");
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (mCamera == null) {
-            mCamera = getCameraInstance();
-        }
-
-        if (surfaceView == null) {
-            holder = surfaceView.getHolder();
-            holder.addCallback(surfaceView);
-            holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-        }
-    }
-
-    public static Camera getCameraInstance() {
-        Camera camera = null;
-        try {
-            camera = Camera.open();
-        } catch (Exception e) {
-
-        }
-        return camera;
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if (mCamera != null) {
-            mCamera.stopPreview();
-            mCamera.release();
-            mCamera = null;
-        }
-
-        if (surfaceView != null) {
-            surfaceView = null;
-        }
     }
 
     private boolean checkCameraHardware(Context context) {
@@ -450,9 +384,15 @@ public class CameraActivity extends AppCompatActivity {
             return true;
         } else {
             // no camera on this device
-            Toast.makeText(getInstance, "카메라를 지원하지  않는 기기입니다.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getInstance, "카메라를 지원하지 않는 기기입니다.", Toast.LENGTH_SHORT).show();
             finish();
             return false;
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.i(TAG,"onPause 호출");
     }
 }
