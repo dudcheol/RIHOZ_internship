@@ -6,6 +6,7 @@ import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -25,6 +26,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
 import com.example.guideline_on_camera.network.NetworkClient;
 import com.example.guideline_on_camera.util.CameraPreview;
 
@@ -62,7 +64,7 @@ public class CameraActivity extends AppCompatActivity {
     private final int CAMERA_STATE_BUSY = 2;
     private final int CAMERA_STATE_PREVIEW = 3;
 
-    private Button shotBtn;
+    private Button shotBtn,saveBtn,retryBtn;
     private ImageView thumbnail;
 
 
@@ -70,8 +72,8 @@ public class CameraActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        checkCameraHardware(this);
         InitSetting();
-        takePicture();
 
     }
 
@@ -81,13 +83,18 @@ public class CameraActivity extends AppCompatActivity {
         requestPermissionCamera();
         // setcontentview 다음에 find
         shotBtn = findViewById(R.id.shotBtn);
+        saveBtn = findViewById(R.id.saveBtn);
+        retryBtn = findViewById(R.id.retryBtn);
         thumbnail = findViewById(R.id.thumbnail);
+
+        takePicture();
     }
 
     private void takePicture() {
         shotBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                Log.d(TAG,"takePicture");
                 switch (previewState) {
                     case CAMERA_STATE_FROZEN:
                         mCamera.startPreview();
@@ -106,7 +113,6 @@ public class CameraActivity extends AppCompatActivity {
     private Camera.PictureCallback mPicture = new Camera.PictureCallback() {
         @Override
         public void onPictureTaken(byte[] data, Camera camera) {
-
             File pictureFile = getOutputMediaFile(MEDIA_TYPE_IMAGE);
             if (pictureFile == null) {
                 Log.d(TAG, "Error creating media file, check storage permissions");
@@ -126,16 +132,7 @@ public class CameraActivity extends AppCompatActivity {
             Uri tempImgURI = getOutputMediaFileUri(MEDIA_TYPE_IMAGE);
             Log.i(TAG, tempImgURI.toString());
 
-            // 찍은 사진 미리보기
-            thumbnail.setImageURI(tempImgURI);
-            // 찍은 사진이 갤러리에도 추가하도록 한다
-            galleryAddPic(tempImgURI);
-
-            // 찍은 사진의 회전값 조회
-            String thumbnail_uri_real_path = changeUriForFileNameForm(tempImgURI);
-
-            // 서버로 사진 업로드
-            uploadImageToServer(thumbnail_uri_real_path, checkExifOrientation(thumbnail_uri_real_path));
+            changeDisplay_PICUTURED_STATE(tempImgURI);
         }
     };
 
@@ -256,7 +253,9 @@ public class CameraActivity extends AppCompatActivity {
         this.sendBroadcast(mediaScanIntent);
     }
 
-    private void uploadImageToServer(String imagePath, String orientation) {
+    private void uploadImageToServer(String imagePath) {
+        shotBtn.setEnabled(false);
+
         Retrofit retrofit = NetworkClient.getRetrofitClient(this);
 
         NetworkClient.UploadAPIs uploadAPIs = retrofit.create(NetworkClient.UploadAPIs.class);
@@ -273,12 +272,6 @@ public class CameraActivity extends AppCompatActivity {
         // 텍스트 설명과 텍스트 미디어 타입을 사용해서 리퀘스트 바디 생성
         RequestBody description = RequestBody.create(MediaType.parse("multipart/form-data"), "android");
 
-        // exif orientation 바디 생성
-        RequestBody exif_orientation = RequestBody.create(MediaType.parse("text"),orientation);
-
-        // Todo : orientation도 함께 서버로 보내기
-        //  checkExifOrientation() 로 반환받을 수 있음 null일경우 에러처리도 할 것
-
         Call call = uploadAPIs.uploadImage(part, description);
 
         call.enqueue(new Callback() {
@@ -289,10 +282,12 @@ public class CameraActivity extends AppCompatActivity {
                     Log.i("정민님의 응답", response.toString());
                     Toast.makeText(getApplicationContext(), "Response : 업로드 성공", Toast.LENGTH_SHORT).show();
                     Log.i("response_upload_fail", response.message());
+                    shotBtn.setEnabled(true);
                 } else {
                     Toast.makeText(getApplicationContext(), "Error Response : " + response.message(), Toast.LENGTH_SHORT).show();
                     Log.e("response_upload_fail", response.message());
                     Log.e("response_upload_fail", response.errorBody().toString());
+                    shotBtn.setEnabled(true);
                 }
             }
 
@@ -300,6 +295,7 @@ public class CameraActivity extends AppCompatActivity {
             public void onFailure(Call call, Throwable t) {
                 Toast.makeText(getApplicationContext(), "Fail : 업로드 실패", Toast.LENGTH_SHORT).show();
                 Log.e("Fail", Objects.requireNonNull(t.getMessage()));
+                shotBtn.setEnabled(true);
             }
         });
     }
@@ -335,17 +331,128 @@ public class CameraActivity extends AppCompatActivity {
         return cameraId;
     }
 
-    private String checkExifOrientation(String filepath) {
-        String exif_orientation;
-        try {
-            ExifInterface exif = new ExifInterface(filepath);
-            exif_orientation = exif.getAttribute(ExifInterface.TAG_ORIENTATION);
-            Log.i("EXIF", exif.getAttribute(ExifInterface.TAG_ORIENTATION));
-            return exif_orientation;
-        } catch (IOException e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Error!", Toast.LENGTH_LONG).show();
+    private void changeDisplay_PICUTURED_STATE(Uri uri) {
+        // 찍은 사진의 실제 경로를 구함
+        String thumbnail_uri_real_path = changeUriForFileNameForm(uri);
+
+        displaySetting_CAPTURED_STATE();
+
+        // 썸네일 사진 미리보기
+        Glide.with(getApplicationContext())
+                .load(uri)
+                .into(thumbnail);
+
+        shotBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // 서버로 사진 업로드
+                Toast.makeText(getApplicationContext(), "사진을 서버로 전송중입니다. 잠시만 기다려주세요.", Toast.LENGTH_SHORT).show();
+                uploadImageToServer(thumbnail_uri_real_path);
+            }
+        });
+        saveBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // 찍은 사진이 갤러리에도 추가되도록 한다
+                galleryAddPic(uri);
+                Toast.makeText(getApplicationContext(), "사진이 갤러리에 추가되었습니다.", Toast.LENGTH_SHORT).show();
+            }
+        });
+        retryBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                displaySetting_CAPTURING_STATE();
+            }
+        });
+    }
+
+    private void displaySetting_CAPTURING_STATE(){
+        // 카메라 프리뷰를 다시 시작함
+        if (mCamera == null){
+            mCamera = getCameraInstance();
         }
-        return null;
+        if ( surfaceView == null ){
+            holder = surfaceView.getHolder();
+            holder.addCallback(surfaceView);
+            holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+        }
+
+        surfaceView.setVisibility(View.VISIBLE);
+        thumbnail.setVisibility(View.GONE);
+        retryBtn.setVisibility(View.GONE);
+        saveBtn.setVisibility(View.GONE);
+        shotBtn.setText("cheese~~!!");
+        takePicture();
+    }
+
+    private void displaySetting_CAPTURED_STATE(){
+        // 카메라 프리뷰를 멈춤
+//        surfaceView.surfaceDestroyed(holder);
+//        surfaceView.getHolder().removeCallback(surfaceView);
+        if (mCamera != null) {
+            mCamera.stopPreview();
+            mCamera.release();
+            mCamera = null;
+        }
+
+        if (surfaceView != null) {
+            surfaceView = null;
+        }
+
+        //surfaceView.setVisibility(View.GONE);
+        thumbnail.setVisibility(View.VISIBLE);
+        retryBtn.setVisibility(View.VISIBLE);
+        saveBtn.setVisibility(View.VISIBLE);
+        shotBtn.setText("서버 전송");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mCamera == null) {
+            mCamera = getCameraInstance();
+        }
+
+        if (surfaceView == null) {
+            holder = surfaceView.getHolder();
+            holder.addCallback(surfaceView);
+            holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+        }
+    }
+
+    public static Camera getCameraInstance() {
+        Camera camera = null;
+        try {
+            camera = Camera.open();
+        } catch (Exception e) {
+
+        }
+        return camera;
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mCamera != null) {
+            mCamera.stopPreview();
+            mCamera.release();
+            mCamera = null;
+        }
+
+        if (surfaceView != null) {
+            surfaceView = null;
+        }
+    }
+
+    private boolean checkCameraHardware(Context context) {
+        if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)){
+            // this device has a camera
+            return true;
+        } else {
+            // no camera on this device
+            Toast.makeText(getInstance, "카메라를 지원하지  않는 기기입니다.", Toast.LENGTH_SHORT).show();
+            finish();
+            return false;
+        }
     }
 }

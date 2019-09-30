@@ -13,12 +13,33 @@
         android:visibility="visible"
         android:layout_above="@+id/bottomBar"/>
 
+    <ImageView
+        android:id="@id/thumbnail"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        android:layout_above="@+id/bottomBar"
+        />
+
     <RelativeLayout
         android:id="@+id/bottomBar"
         android:layout_width="match_parent"
         android:layout_height="100dp"
         android:background="#000000"
         android:layout_alignParentBottom="true">
+
+        <Button
+            android:id="@+id/saveBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_centerVertical="true"
+            android:layout_alignParentLeft="true"
+            android:layout_marginLeft="10dp"
+            android:text="저장"
+            android:visibility="gone">
+        </Button>
+
         <Button
             android:id="@+id/shotBtn"
             android:layout_width="wrap_content"
@@ -28,14 +49,26 @@
             android:text="cheese~~!!">
         </Button>
 
-        <ImageView
-            android:id="@+id/thumbnail"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
+        <Button
+            android:id="@+id/retryBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_centerVertical="true"
             android:layout_alignParentRight="true"
             android:layout_marginRight="10dp"
-            android:layout_centerVertical="true"
-            android:src="#ACACAC"/>
+            android:text="다시 찍기"
+            android:visibility="gone">
+        </Button>
+
+<!--        <ImageView-->
+<!--            android:id="@+id/thumbnail"-->
+<!--            android:layout_width="80dp"-->
+<!--            android:layout_height="80dp"-->
+<!--            android:layout_alignParentRight="true"-->
+<!--            android:layout_marginRight="10dp"-->
+<!--            android:layout_centerVertical="true"-->
+<!--            android:src="#ACACAC"/>-->
 
     </RelativeLayout>
 

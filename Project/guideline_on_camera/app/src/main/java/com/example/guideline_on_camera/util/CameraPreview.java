@@ -17,6 +17,7 @@ import java.util.List;
 
 public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
     private Camera mCamera;
+    private SurfaceHolder mHolder;
     public List<Camera.Size> listPreviewSizes;
     private Camera.Size previewSize;
     private Context context;
@@ -30,6 +31,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             mCamera = Camera.open();
         }
         listPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
+
     }
 
     //  SurfaceView 생성시 호출
@@ -72,6 +74,8 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
                 }
             });
         } catch (IOException e) {
+            mCamera.release();
+            mCamera = null;
         }
     }
 
@@ -124,7 +128,9 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
         if(mCamera != null){
             // 카메라 미리보기를 종료한다.
+            this.getHolder().removeCallback(this);
             mCamera.stopPreview();
+            mCamera.setPreviewCallback(null);
             mCamera.release();
             mCamera = null;
         }
