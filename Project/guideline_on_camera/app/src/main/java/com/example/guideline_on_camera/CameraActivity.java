@@ -118,6 +118,16 @@ public class CameraActivity extends AppCompatActivity {
             }
 
             try {
+                ExifInterface exif = new ExifInterface(pictureFile);
+                int exifOrientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION,ExifInterface.ORIENTATION_NORMAL);
+                int exifDegree = exifOrientationToDegrees(exifOrientation);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+
+            try {
                 FileOutputStream fos = new FileOutputStream(pictureFile);
                 fos.write(data);
                 fos.close();
@@ -133,6 +143,23 @@ public class CameraActivity extends AppCompatActivity {
             changeDisplay_PICUTURED_STATE(tempImgURI);
         }
     };
+
+    private int exifOrientationToDegrees(int exifOrientation)
+    {
+        if(exifOrientation == ExifInterface.ORIENTATION_ROTATE_90)
+        {
+            return 90;
+        }
+        else if(exifOrientation == ExifInterface.ORIENTATION_ROTATE_180)
+        {
+            return 180;
+        }
+        else if(exifOrientation == ExifInterface.ORIENTATION_ROTATE_270)
+        {
+            return 270;
+        }
+        return 0;
+    }
 
     /**
      * 이미지나 비디오 파일을 저장하기 위한 uri 생성
