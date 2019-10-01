@@ -32,7 +32,6 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             mCamera = Camera.open();
         }
         listPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
-
     }
 
     //  SurfaceView 생성시 호출
@@ -49,17 +48,10 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             // 카메라 설정
             Camera.Parameters parameters = mCamera .getParameters();
 
-            // 카메라의 회전이 가로/세로일때 화면을 설정한다.
-            setCameraDisplayOrientation(CameraActivity.getInstance,Camera.CameraInfo.CAMERA_FACING_FRONT,mCamera);
-//            if (getResources().getConfiguration().orientation != Configuration.ORIENTATION_LANDSCAPE) {
-//                parameters.set("orientation", "portrait");
-//                mCamera.setDisplayOrientation(90);
-//                parameters.setRotation(90);
-//            } else {
-//                parameters.set("orientation", "portrait");
-//                mCamera.setDisplayOrientation(90);
-//                parameters.setRotation(90);
-//            }
+            // 카메라 프리뷰 회전을 세로로 고정하고
+            // 카메라 회전 매개 변수를 설정해서 이미지를 저장할 때 회전되서 저장되도록 함
+            setCameraDisplayOrientation(CameraActivity.getInstance,Camera.CameraInfo.CAMERA_FACING_BACK,mCamera);
+
             mCamera.setParameters(parameters);
 
             mCamera.setPreviewDisplay(surfaceHolder);
@@ -95,32 +87,11 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         try {
             mCamera .stopPreview();
 
-            Camera.Parameters parameters = mCamera .getParameters();
-
-            setCameraDisplayOrientation(CameraActivity.getInstance,Camera.CameraInfo.CAMERA_FACING_FRONT,mCamera);
-            // 화면 회전시 사진 회전 속성을 맞추기 위해 설정한다.
-            /*int rotation = CameraActivity.getInstance.getWindowManager().getDefaultDisplay().getRotation();
-            if (rotation == Surface.ROTATION_0) {
-                mCamera .setDisplayOrientation(90);
-                parameters.setRotation(90);
-            }else if(rotation == Surface.ROTATION_90){
-                mCamera .setDisplayOrientation(0);
-                parameters.setRotation(0);
-            }else if(rotation == Surface.ROTATION_180){
-                mCamera .setDisplayOrientation(270);
-                parameters.setRotation(270);
-            }else{
-                mCamera .setDisplayOrientation(180);
-                parameters.setRotation(180);
-            }*/
-
-            // 변경된 화면 넓이를 설정한다.
-            parameters.setPreviewSize(previewSize.width, previewSize.height);
-            mCamera .setParameters(parameters);
+            setCameraDisplayOrientation(CameraActivity.getInstance,Camera.CameraInfo.CAMERA_FACING_BACK,mCamera);
 
             // 새로 변경된 설정으로 프리뷰를 시작한다
-            mCamera .setPreviewDisplay(surfaceHolder);
-            mCamera .startPreview();
+            mCamera.setPreviewDisplay(surfaceHolder);
+            mCamera.startPreview();
 
         } catch (Exception e){
             e.printStackTrace();
@@ -142,56 +113,6 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         }
     }
 
-    // 화면이 회전할 때 화면 사이즈를 구한다.
-    @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-
-        final int width = resolveSize(getSuggestedMinimumWidth(), widthMeasureSpec);
-        final int height = resolveSize(getSuggestedMinimumHeight(), heightMeasureSpec);
-        setMeasuredDimension(width, height);
-
-        if (listPreviewSizes != null) {
-            previewSize = getPreviewSize(listPreviewSizes, width, height);
-        }
-    }
-
-    public Camera.Size getPreviewSize(List<Camera.Size> sizes, int w, int h) {
-
-        final double ASPECT_TOLERANCE = 0.1;
-        double targetRatio = (double) h / w;
-
-        if (sizes == null)
-            return null;
-
-        Camera.Size optimalSize = null;
-        double minDiff = Double.MAX_VALUE;
-
-        int targetHeight = h;
-
-        for (Camera.Size size : sizes) {
-            double ratio = (double) size.width / size.height;
-            if (Math.abs(ratio - targetRatio) > ASPECT_TOLERANCE)
-                continue;
-
-            if (Math.abs(size.height - targetHeight) < minDiff) {
-                optimalSize = size;
-                minDiff = Math.abs(size.height - targetHeight);
-            }
-        }
-
-        if (optimalSize == null) {
-            minDiff = Double.MAX_VALUE;
-            for (Camera.Size size : sizes) {
-                if (Math.abs(size.height - targetHeight) < minDiff) {
-                    optimalSize = size;
-                    minDiff = Math.abs(size.height - targetHeight);
-                }
-            }
-        }
-
-        return optimalSize;
-    }
-
     public static void setCameraDisplayOrientation(Activity activity,
                                                    int cameraId, android.hardware.Camera camera) {
         android.hardware.Camera.CameraInfo info =
@@ -206,7 +127,6 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             case Surface.ROTATION_180: degrees = 180; break;
             case Surface.ROTATION_270: degrees = 270; break;
         }
-
         int result;
         if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
             result = (info.orientation + degrees) % 360;
@@ -214,9 +134,9 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         } else {  // back-facing
             result = (info.orientation - degrees + 360) % 360;
         }
+        Camera.Parameters params = camera.getParameters();
+        params.setRotation(result);
+        camera.setParameters(params);
         camera.setDisplayOrientation(result);
     }
-
-
-
 }
