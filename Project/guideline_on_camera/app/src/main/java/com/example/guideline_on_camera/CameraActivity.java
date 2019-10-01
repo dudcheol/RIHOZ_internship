@@ -73,15 +73,12 @@ public class CameraActivity extends AppCompatActivity {
     private int CAMERA_POSITION;
     private boolean SAVE_FILE = false;
 
-    // Todo : 저장안눌렀을땐 삭제하기
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         checkCameraHardware(this);
         InitSetting();
-
     }
 
     private boolean checkCameraHardware(Context context) {
@@ -403,4 +400,27 @@ public class CameraActivity extends AppCompatActivity {
             }
         }
     }
+
+
+    //Todo : 앱을 나갔다가 들어올때, 앱 위에 다른 앱이 올라왔을 때 등에서
+    // 카메라를 해제하고 다시 키는 작업 수행
+    /*@Override
+    protected void onResume() {
+        super.onResume();
+        if (mCamera == null) {
+            mCamera=getCameraInstance();
+            mPreview = new CameraPreview(this.getActivity(), mCamera);
+            preview.addView(mPreview);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mCamera != null){
+            surfaceView.getHolder().removeCallback(surfaceView);
+            mCamera.release();
+            mCamera = null;
+        }
+    }*/
 }
