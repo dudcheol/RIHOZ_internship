@@ -73,6 +73,8 @@ public class CameraActivity extends AppCompatActivity {
     private int CAMERA_POSITION;
     private boolean SAVE_FILE = false;
 
+    // Todo 1 : 레트로핏으로 넘길때 url말고 바로 filestream 자체를 보낼 수 있는 방법을 생각
+    // Todo 2 : 찍은 사진의 특정 영역의 rgb값을 빼와서 밝기체크 (?)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
