@@ -67,13 +67,13 @@ public class CameraActivity extends AppCompatActivity {
     private final int CAMERA_STATE_BUSY = 2;
     private final int CAMERA_STATE_PREVIEW = 3;
 
-    private Button shotBtn,saveBtn,retryBtn;
-    private ImageView thumbnail,guideLine;
+    private Button shotBtn, saveBtn, retryBtn;
+    private ImageView thumbnail, guideLine;
 
     private int CAMERA_POSITION;
+    private boolean SAVE_FILE = false;
 
-    // Todo 1 : 저장안눌렀을땐 삭제하기
-    // Todo 2 : 저장자체를 할때 회전되지 않게 하기
+    // Todo : 저장안눌렀을땐 삭제하기
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,6 +82,18 @@ public class CameraActivity extends AppCompatActivity {
         checkCameraHardware(this);
         InitSetting();
 
+    }
+
+    private boolean checkCameraHardware(Context context) {
+        if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
+            // this device has a camera
+            return true;
+        } else {
+            // no camera on this device
+            Toast.makeText(getInstance, "카메라를 지원하지 않는 기기입니다.", Toast.LENGTH_SHORT).show();
+            finish();
+            return false;
+        }
     }
 
     private void InitSetting() {
@@ -94,7 +106,7 @@ public class CameraActivity extends AppCompatActivity {
         shotBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Log.d(TAG,"takePicture");
+                Log.d(TAG, "takePicture");
                 switch (previewState) {
                     case CAMERA_STATE_FROZEN:
                         mCamera.startPreview();
@@ -120,17 +132,6 @@ public class CameraActivity extends AppCompatActivity {
                 return;
             }
 
-            // byte 파일을 bitmap으로 변환한 후 bitmap을 회전시키는 방법
-            /*ExifInterface exif=null;
-            try {
-                exif = new ExifInterface(pictureFile);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            int exifOrientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION,ExifInterface.ORIENTATION_NORMAL);
-            Bitmap bmData = BitmapFactory.decodeByteArray(data,0,data.length,null);
-            Bitmap bmRotatedData = rotateBitmap(bmData, exifOrientation);*/
-
             try {
                 FileOutputStream fos = new FileOutputStream(pictureFile);
                 fos.write(data);
@@ -144,46 +145,25 @@ public class CameraActivity extends AppCompatActivity {
             Uri tempImgURI = getOutputMediaFileUri(MEDIA_TYPE_IMAGE);
             Log.i(TAG, tempImgURI.toString());
 
+            SAVE_FILE=false;
             changeDisplay_PICUTURED_STATE(tempImgURI);
         }
     };
 
-    private int exifOrientationToDegrees(int exifOrientation)
-    {
-        if(exifOrientation == ExifInterface.ORIENTATION_ROTATE_90)
-        {
-            return 90;
-        }
-        else if(exifOrientation == ExifInterface.ORIENTATION_ROTATE_180)
-        {
-            return 180;
-        }
-        else if(exifOrientation == ExifInterface.ORIENTATION_ROTATE_270)
-        {
-            return 270;
-        }
-        return 0;
-    }
-
-    /**
-     * 이미지나 비디오 파일을 저장하기 위한 uri 생성
-     */
+    // 이미지나 비디오 파일을 저장하기 위한 uri 생성
     private static Uri getOutputMediaFileUri(int type) {
         return Uri.fromFile(getOutputMediaFile(type));
     }
 
-    /**
-     * 이미지나 비디오 파일을 저장하기 위한 파일 생성
-     */
+    // 이미지나 비디오 파일을 저장하기 위한 파일 생성
     private static File getOutputMediaFile(int type) {
         // Todo : 안전을 위해 이 메소드를 사용하기 전에 SDcard가 마운트 되어있는지 체크할 필요가 있음 => Environment.getExternalStorageState()
 
+        // getExternalStoragePublicDirectory < 이 앱이 삭제되더라도 사진은 유지되는 공유 저장 공간
         File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_PICTURES), "guideline_on_camera");
-        // This location works best if you want the created images to be shared
-        // between applications and persist after your app has been uninstalled.
 
-        // Create the storage directory if it does not exist
+
         if (!mediaStorageDir.exists()) {
             if (!mediaStorageDir.mkdirs()) {
                 Log.d(TAG, "failed to create directory");
@@ -374,18 +354,22 @@ public class CameraActivity extends AppCompatActivity {
             public void onClick(View view) {
                 // 찍은 사진이 갤러리에도 추가되도록 한다
                 galleryAddPic(uri);
+                SAVE_FILE = true;
                 Toast.makeText(getApplicationContext(), "사진이 갤러리에 추가되었습니다.", Toast.LENGTH_SHORT).show();
             }
         });
         retryBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if (!SAVE_FILE){
+                    delete_file(thumbnail_uri_real_path);
+                }
                 displaySetting_CAPTURING_STATE();
             }
         });
     }
 
-    private void displaySetting_CAPTURING_STATE(){
+    private void displaySetting_CAPTURING_STATE() {
         // 카메라 프리뷰를 다시 시작함
         setInit();
 
@@ -398,7 +382,7 @@ public class CameraActivity extends AppCompatActivity {
         takePicture();
     }
 
-    private void displaySetting_CAPTURED_STATE(){
+    private void displaySetting_CAPTURED_STATE() {
         // 카메라 프리뷰를 멈춤
         surfaceView.surfaceDestroyed(holder);
 
@@ -409,59 +393,14 @@ public class CameraActivity extends AppCompatActivity {
         shotBtn.setText("서버 전송");
     }
 
-    private boolean checkCameraHardware(Context context) {
-        if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)){
-            // this device has a camera
-            return true;
-        } else {
-            // no camera on this device
-            Toast.makeText(getInstance, "카메라를 지원하지 않는 기기입니다.", Toast.LENGTH_SHORT).show();
-            finish();
-            return false;
-        }
-    }
-
-    public static Bitmap rotateBitmap(Bitmap bitmap, int orientation) {
-
-        Matrix matrix = new Matrix();
-        switch (orientation) {
-            case ExifInterface.ORIENTATION_NORMAL:
-                return bitmap;
-            case ExifInterface.ORIENTATION_FLIP_HORIZONTAL:
-                matrix.setScale(-1, 1);
-                break;
-            case ExifInterface.ORIENTATION_ROTATE_180:
-                matrix.setRotate(180);
-                break;
-            case ExifInterface.ORIENTATION_FLIP_VERTICAL:
-                matrix.setRotate(180);
-                matrix.postScale(-1, 1);
-                break;
-            case ExifInterface.ORIENTATION_TRANSPOSE:
-                matrix.setRotate(90);
-                matrix.postScale(-1, 1);
-                break;
-            case ExifInterface.ORIENTATION_ROTATE_90:
-                matrix.setRotate(90);
-                break;
-            case ExifInterface.ORIENTATION_TRANSVERSE:
-                matrix.setRotate(-90);
-                matrix.postScale(-1, 1);
-                break;
-            case ExifInterface.ORIENTATION_ROTATE_270:
-                matrix.setRotate(-90);
-                break;
-            default:
-                return bitmap;
-        }
-        try {
-            Bitmap bmRotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
-            bitmap.recycle();
-            return bmRotated;
-        }
-        catch (OutOfMemoryError e) {
-            e.printStackTrace();
-            return null;
+    private void delete_file(String uri){
+        File fdelete = new File(uri);
+        if (fdelete.exists()) {
+            if (fdelete.delete()) {
+                System.out.println("file Deleted :" + uri);
+            } else {
+                System.out.println("file not Deleted :" + uri);
+            }
         }
     }
 }
