@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>GSAP_study_TweenMax</title>
+    <meta charset="utf-8">
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/gsap/2.1.3/TweenMax.min.js"> </script>
+    <script src="http://code.jquery.com/jquery-latest.min.js"></script>
+    <script type="text/javascript">
+    window.onload = function() {
+        var tl = new TimelineLite;
+
+        console.log(tl);
+
+        var mydiv = document.getElementById('myDiv');
+
+        console.log(mydiv);
+
+        tl.to("#myDiv", 2, {
+                x: 100,
+                y: 75,
+                backgroundColor: "#000",
+                ease: Power4.easeIn
+            })
+            .to("#myDiv", 1, {
+                scaleX: 1.5,
+                scaleY: 1.5,
+                backgroundColor: "#454545",
+                ease: Back.easeOut.config(1.7)
+            })
+            .from("#myCircle", 1, {
+                opacity: 0,
+            });
+    }
+
+    </script>
+    <style>
+    #myDiv {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 200px;
+        height: 200px;
+        background: red;
+    }
+
+    #myCircle {
+        position: absolute;
+        left: 50px;
+        top: 350px;
+        width: 150px;
+        height: 150px;
+        background: red;
+        border-radius: 100%;
+    }
+    </style>
+</head>
+
+<body>
+    <div id="myDiv"></div>
+    <div id="myCircle"></div>
+    <section></section>
+</body>
+
+</html>

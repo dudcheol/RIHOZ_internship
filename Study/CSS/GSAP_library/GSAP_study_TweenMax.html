@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>GSAP_study_TweenMax</title>
+    <meta charset="utf-8">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/2.1.3/TweenMax.min.js"></script>
+    <!-- <script src="http://code.jquery.com/jquery-latest.min.js"></script> -->
+    <script type="text/javascript">
+    var SCREEN_WIDTH = window.innerWidth,
+        SCREEN_HEIGHT = window.innerHeight;
+
+    window.onload = function() {
+        initStyleSetting();
+    }
+
+    var initStyleSetting = function() {
+        var browserInfo = JSON.parse(JSON.stringify({
+            width: Math.min(window.innerWidth, document.body.clientWidth),
+            height: Math.min(window.innerHeight, document.body.clientHeight)
+        }) || navigator.userAgent.split('$custom=')[1]);
+        SCREEN_WIDTH = browserInfo.width;
+        SCREEN_HEIGHT = browserInfo.height;
+
+        var containerOfSVG = document.getElementById('containerOfSVG');
+        containerOfSVG.style.width = SCREEN_WIDTH + 'px';
+        containerOfSVG.style.height = SCREEN_HEIGHT + 'px';
+    }
+    </script>
+    <style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    html {
+        width: 100%;
+        height: 100%;
+    }
+
+    body {
+        width: 100%;
+        height: 100%;
+    }
+
+    .container {
+        position: absolute;
+        width: 70%;
+        height: 35%;
+        top: 30%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    .bg-yellow {
+        position: absolute;
+        top: 0px;
+        left: 0px;
+        z-index: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    .coin {
+        position: absolute;
+        z-index: 1;
+        margin-top: 15%;
+         width: 100%;
+        height: 100%;
+    }
+
+    .hand {
+        position: absolute;
+        z-index: 2;
+        margin-top: 3%;
+         width: 100%;
+        height: 100%;
+    }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="coin">
+            <svg xmlns="http://www.w3.org/2000/svg" width="25%" height="25%" viewBox="0 0 65 65">
+                <g fill="none" fill-rule="evenodd">
+                    <path fill="#F7D379" d="M32.5 65C14.55 65 0 50.45 0 32.5S14.55 0 32.5 0 65 14.55 65 32.5 50.45 65 32.5 65z" />
+                    <path stroke="#7E3D00" stroke-width="1.8" d="M58.851 32.5c0 14.554-11.798 26.351-26.351 26.351-14.554 0-26.351-11.797-26.351-26.351 0-14.554 11.797-26.351 26.351-26.351 14.553 0 26.351 11.797 26.351 26.351z" opacity=".35" />
+                    <path fill="#503918" stroke="#F7D379" stroke-width=".3" d="M38.211 38.179l1.21-4.98h-2.49l1.28 4.98zm-6.26-6.64h1.66l-.79-4.151-.87 4.15zm-4.649 6.64l1.329-4.98h-2.49l1.161 4.98zm5.665-16.602c.476 0 .904.145 1.287.434.383.29.656.788.822 1.495l1.737 7.651h3.256l1.768-8.197c.124-.579.398-.97.822-1.174a1.937 1.937 0 0 1 1.318-.144c.496.107.873.353 1.132.74.258.385.315.878.17 1.478l-1.767 7.297h2.48c.31 0 .538.113.683.338.145.225.217.498.217.82 0 .3-.072.562-.217.787-.145.225-.372.337-.682.337h-3.008l-2.264 9.452c-.166.707-.45 1.205-.853 1.494-.404.29-.822.434-1.256.434-.434 0-.853-.144-1.257-.434-.403-.289-.687-.808-.852-1.559l-2.11-9.387h-2.977l-2.295 9.452c-.166.707-.455 1.205-.868 1.494-.414.29-.837.434-1.271.434-.435 0-.853-.144-1.256-.434-.404-.289-.688-.798-.853-1.527l-2.264-9.419h-3.04c-.31 0-.538-.112-.682-.337a1.423 1.423 0 0 1-.217-.788c0-.321.072-.594.217-.82.144-.224.372-.337.682-.337h2.513l-1.737-7.297c-.145-.6-.089-1.093.17-1.479.258-.386.646-.632 1.163-.74.476-.106.92-.069 1.334.113.413.182.692.584.837 1.206l1.768 8.197h3.38l1.861-7.65c.165-.708.43-1.206.791-1.496.362-.289.801-.434 1.318-.434z" />
+                </g>
+            </svg>
+        </div>
+        <div class="bg-yellow">
+            <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 244 214">
+                <path fill="#FFF6E1" fill-opacity=".7" fill-rule="evenodd" d="M58.523 205.365C.572 202.625-7.434 151.528 5.087 90.457 17.608 29.385 75.066-2.578 133.017.163c57.97 2.715 121.918 113.516 109.397 174.587-12.522 61.072-125.94 33.356-183.89 30.615z" />
+            </svg>
+        </div>
+        <div class="hand">
+            <svg xmlns="http://www.w3.org/2000/svg" width="65%" height="20%" viewBox="0 0 157 79">
+                <g fill="none" fill-rule="evenodd">
+                    <path fill="#FFE9B3" d="M28.98 78.66H4.035A4.036 4.036 0 0 1 0 74.626V27.284a4.036 4.036 0 0 1 4.036-4.035h24.943a4.036 4.036 0 0 1 4.036 4.035v47.341a4.036 4.036 0 0 1-4.036 4.036" />
+                    <path fill="#FFD98D" d="M34.448 71.688h-.949a.83.83 0 0 1-.83-.83V26.17a.83.83 0 0 1 .83-.83h.949a.83.83 0 0 1 .83.83v44.687a.83.83 0 0 1-.83.83" />
+                    <path fill="#FDE1C8" d="M153 23.25c-1.91 10.688-2.847 12.672-8.185 16.853-6.721 5.264-26.023 17.41-32.733 21.408-6.716 3.997-8.21 8.472-22.944 7.352-14.736-1.114-46.581-5.032-53.878-5.032V28.58c3.336-.373 10.425-5.999 19.185-5.332 8.766.668 20.901 3.932 29.294 2.628 8.393-1.31 19.506-4.384 26.637-3.803 5.004.407 8.363 2.045 9.323 4.734.747 2.092.096 4.665-2.224 7.234 0 0 13.566-6.373 17.484-8.172 3.165-3.98 4.536-15.011 9.758-20.98 3.074-3.508 6.538-4.793 8.908-4.885h.006c1.659-.061 2.773.459 2.84 1.212.184 2.02-1.567 11.344-3.47 22.032" />
+                    <path fill="#F8C9B4" d="M153.625.005c-8.038 2.228-9.82 16.835-12.354 24.132-2.528 7.297-2.829 7.297-13.695 12.213-10.872 4.91-20.814 6.844-34.098 8.932-7.205 1.132-19.351 5.21-15.63 2.381 3.723-2.828 13.249-5.51 20.992-6.703 7.745-1.188 15.189-3.275 18.635-6.918 0 0 13.566-6.373 17.484-8.172 3.165-3.98 4.536-15.011 9.758-20.98 3.074-3.508 6.538-4.793 8.908-4.885" />
+                </g>
+            </svg>
+        </div>
+    </div>
+</body>
+
+</html>
