@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.media.ExifInterface;
 import android.net.Uri;
@@ -154,12 +155,14 @@ public class CameraActivity extends AppCompatActivity {
             try {
                 FileOutputStream fos = new FileOutputStream(pictureFile);
 //                fos.write(data);
-                int angleToRotate = getCameraDisplayOrientation(CameraActivity.getInstance, Camera.CameraInfo.CAMERA_FACING_FRONT);
-                // Solve image inverting problem
-                angleToRotate = angleToRotate + 90;
-                Bitmap orignalImage = BitmapFactory.decodeByteArray(data, 0, data.length);
-                Bitmap bitmapImage = rotate(orignalImage, angleToRotate);
-                bitmapImage.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+//                int angleToRotate = getCameraDisplayOrientation(CameraActivity.getInstance, Camera.CameraInfo.CAMERA_FACING_FRONT);
+//                // Solve image inverting problem
+//                angleToRotate = angleToRotate + 90;
+//                Bitmap orignalImage = BitmapFactory.decodeByteArray(data, 0, data.length);
+//                Bitmap bitmapImage = rotate(orignalImage, angleToRotate);
+//                bitmapImage.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+                Bitmap resultBitmap = processImage(data);
+                resultBitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
                 fos.flush();
                 fos.close();
 
@@ -519,6 +522,36 @@ public class CameraActivity extends AppCompatActivity {
         RelativeLayout.LayoutParams overlayParams = (RelativeLayout.LayoutParams) overlay.getLayoutParams();
         overlayParams.height = previewHeight - previewWidth;
         overlay.setLayoutParams(overlayParams);
+    }
+
+    private Bitmap processImage(byte[] data) throws IOException {
+        // Determine the width/height of the image
+        int width = mCamera.getParameters().getPictureSize().width;
+        int height = mCamera.getParameters().getPictureSize().height;
+        int angleToRotate = getCameraDisplayOrientation(CameraActivity.getInstance, CAMERA_FACING);
+
+        // Load the bitmap from the byte array
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+        Bitmap orignalImage = BitmapFactory.decodeByteArray(data, 0, data.length, options);
+
+        int croppedWidth = (width > height) ? height : width;
+        int croppedHeight = (width > height) ? height : width;
+
+        Matrix matrix = new Matrix();
+        // Solve image inverting problem
+        angleToRotate = angleToRotate + 90;
+        Bitmap rotatedImage = rotate(orignalImage, angleToRotate);
+
+        // Rotate and crop the image into a square
+        Bitmap cropped = Bitmap.createBitmap(rotatedImage, 0, 0, croppedWidth, croppedHeight, matrix, true);
+        rotatedImage.recycle();
+
+        // Scale down to the output size
+        Bitmap scaledBitmap = Bitmap.createScaledBitmap(cropped, IMAGE_SIZE, IMAGE_SIZE, true);
+        cropped.recycle();
+
+        return scaledBitmap;
     }
 
     //Todo : 앱을 나갔다가 들어올때, 앱 위에 다른 앱이 올라왔을 때 등에서
