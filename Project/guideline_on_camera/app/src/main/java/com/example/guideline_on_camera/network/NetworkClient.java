@@ -14,7 +14,7 @@ import retrofit2.http.POST;
 import retrofit2.http.Part;
 
 public class NetworkClient {
-    private static final String BASE_URL = "http://192.168.0.156:3000";
+    private static final String BASE_URL = "http://192.168.0.70:3000";
     private static Retrofit retrofit;
     public static Retrofit getRetrofitClient(Context context) {
         if (retrofit == null) {

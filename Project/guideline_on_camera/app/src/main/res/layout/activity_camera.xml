@@ -1,17 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".CameraActivity">
 
     <com.example.guideline_on_camera.util.CameraPreview
         android:id="@+id/preview"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="visible"
-        android:layout_above="@+id/bottomBar"/>
+        android:visibility="visible" />
 
     <!--<FrameLayout
         android:id="@+id/preview"
@@ -24,37 +23,32 @@
         android:id="@+id/guideLine"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:src="@drawable/bodyshape2"
-        android:scaleType="fitXY"/>
+        android:scaleType="fitXY"
+        android:src="@drawable/camera_cover_image" />
 
 
     <ImageView
         android:id="@id/thumbnail"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="gone"
-        android:layout_above="@+id/bottomBar"
-
-        />
+        android:visibility="gone" />
 
     <RelativeLayout
-        android:id="@+id/bottomBar"
+        android:id="@+id/overlay"
         android:layout_width="match_parent"
-        android:layout_height="100dp"
-        android:background="#000000"
-        android:layout_alignParentBottom="true">
-
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="#ffffff">
         <Button
             android:id="@+id/saveBtn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
             android:layout_centerHorizontal="true"
             android:layout_centerVertical="true"
-            android:layout_alignParentLeft="true"
             android:layout_marginLeft="10dp"
             android:text="저장"
-            android:visibility="gone">
-        </Button>
+            android:visibility="gone"></Button>
 
         <Button
             android:id="@+id/shotBtn"
@@ -62,30 +56,36 @@
             android:layout_height="wrap_content"
             android:layout_centerHorizontal="true"
             android:layout_centerVertical="true"
-            android:text="cheese~~!!">
-        </Button>
+            android:text="cheese~~!!"></Button>
 
         <Button
             android:id="@+id/retryBtn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
             android:layout_centerHorizontal="true"
             android:layout_centerVertical="true"
-            android:layout_alignParentRight="true"
             android:layout_marginRight="10dp"
             android:text="다시 찍기"
-            android:visibility="gone">
-        </Button>
-
-<!--        <ImageView-->
-<!--            android:id="@+id/thumbnail"-->
-<!--            android:layout_width="80dp"-->
-<!--            android:layout_height="80dp"-->
-<!--            android:layout_alignParentRight="true"-->
-<!--            android:layout_marginRight="10dp"-->
-<!--            android:layout_centerVertical="true"-->
-<!--            android:src="#ACACAC"/>-->
-
+            android:visibility="gone"></Button>
     </RelativeLayout>
+
+<!--    <RelativeLayout-->
+<!--        android:id="@+id/bottomBar"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="100dp"-->
+<!--        android:layout_alignParentBottom="true"-->
+<!--        android:background="#000000">-->
+
+<!--            &lt;!&ndash;        <ImageView&ndash;&gt;-->
+<!--            &lt;!&ndash;            android:id="@+id/thumbnail"&ndash;&gt;-->
+<!--            &lt;!&ndash;            android:layout_width="80dp"&ndash;&gt;-->
+<!--            &lt;!&ndash;            android:layout_height="80dp"&ndash;&gt;-->
+<!--            &lt;!&ndash;            android:layout_alignParentRight="true"&ndash;&gt;-->
+<!--            &lt;!&ndash;            android:layout_marginRight="10dp"&ndash;&gt;-->
+<!--            &lt;!&ndash;            android:layout_centerVertical="true"&ndash;&gt;-->
+<!--            &lt;!&ndash;            android:src="#ACACAC"/>&ndash;&gt;-->
+
+<!--        </RelativeLayout>-->
 
 </RelativeLayout>

@@ -5,21 +5,17 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.provider.MediaStore;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.View;
@@ -27,6 +23,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
@@ -39,6 +36,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Objects;
 
 import okhttp3.MediaType;
@@ -49,18 +47,25 @@ import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 
+import static android.view.View.getDefaultSize;
+import static com.example.guideline_on_camera.util.CameraPreview.getCameraDisplayOrientation;
+import static com.example.guideline_on_camera.util.CameraPreview.rotate;
+
 public class CameraActivity extends AppCompatActivity {
 
     public static final int MEDIA_TYPE_IMAGE = 1;
     public static final int MEDIA_TYPE_VIDEO = 2;
     public static final String TAG = "CAMERA_LOG";
-    private int FRONT_CAMERA_ID;
+    private static final int IMAGE_SIZE = 1024;
+    public static int CAMERA_FACING;
 
     private CameraPreview surfaceView;
     private SurfaceHolder holder;
     private static Button camera_preview_button;
     private static Camera mCamera;
-    private int RESULT_PERMISSIONS = 100;
+    private int RESULT_CAMERA_PERMISSIONS = 100;
+    private int RESULT_READ_EXTERNAL_STORAGE_PERMISSIONS = 200;
+    private int RESULT_WRITE_EXTERNAL_STORAGE_PERMISSIONS = 300;
     public static CameraActivity getInstance;
     private int previewState;
     private final int CAMERA_STATE_FROZEN = 1;
@@ -69,8 +74,11 @@ public class CameraActivity extends AppCompatActivity {
 
     private Button shotBtn, saveBtn, retryBtn;
     private ImageView thumbnail, guideLine;
+    private RelativeLayout overlay;
 
-    private int CAMERA_POSITION;
+    private int previewWidth;
+    private int previewHeight;
+
     private boolean SAVE_FILE = false;
 
     // Todo 1 : 레트로핏으로 넘길때 url말고 바로 filestream 자체를 보낼 수 있는 방법을 생각
@@ -97,12 +105,21 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void InitSetting() {
-        CAMERA_POSITION = Camera.CameraInfo.CAMERA_FACING_BACK;
+        CAMERA_FACING = Camera.CameraInfo.CAMERA_FACING_FRONT;
         fullScreenSetting();
         requestPermissionCamera();
     }
 
     private void takePicture() {
+        for(int i=0;i<mCamera.getParameters().getSupportedPreviewSizes().size();i++) {
+            Log.i("PreviewSizesX:",mCamera.getParameters().getSupportedPreviewSizes().get(i).width+"");
+            Log.i("PreviewSizesY:",mCamera.getParameters().getSupportedPreviewSizes().get(i).height+"");
+        }
+        for(int i=0;i<mCamera.getParameters().getSupportedPictureSizes().size();i++) {
+            Log.i("PictureSizesX:",mCamera.getParameters().getSupportedPictureSizes().get(i).width+"");
+            Log.i("PictureSizesY:",mCamera.getParameters().getSupportedPictureSizes().get(i).height+"");
+        }
+
         shotBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -132,21 +149,39 @@ public class CameraActivity extends AppCompatActivity {
                 return;
             }
 
+            Log.i("file_name",pictureFile.getPath());
+
             try {
                 FileOutputStream fos = new FileOutputStream(pictureFile);
-                fos.write(data);
+//                fos.write(data);
+                int angleToRotate = getCameraDisplayOrientation(CameraActivity.getInstance, Camera.CameraInfo.CAMERA_FACING_FRONT);
+                // Solve image inverting problem
+                angleToRotate = angleToRotate + 90;
+                Bitmap orignalImage = BitmapFactory.decodeByteArray(data, 0, data.length);
+                Bitmap bitmapImage = rotate(orignalImage, angleToRotate);
+                bitmapImage.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+                fos.flush();
                 fos.close();
+
+//                Uri tempImgURI = getOutputMediaFileUri(MEDIA_TYPE_IMAGE);
+                String tempImgURI = pictureFile.getPath();
+                Log.i("check tempimguri",tempImgURI+"");
+                SAVE_FILE=false;
+                changeDisplay_PICUTURED_STATE(tempImgURI);
             } catch (FileNotFoundException e) {
                 Log.d(TAG, "File not found: " + e.getMessage());
             } catch (IOException e) {
                 Log.d(TAG, "Error accessing file: " + e.getMessage());
             }
 
-            Uri tempImgURI = getOutputMediaFileUri(MEDIA_TYPE_IMAGE);
-            Log.i(TAG, tempImgURI.toString());
-
-            SAVE_FILE=false;
-            changeDisplay_PICUTURED_STATE(tempImgURI);
+//            ExifInterface exifInterface = null;
+//            try {
+//                exifInterface = new ExifInterface(tempImgURI.getPath());
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//            int orientation = exifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+//            Log.i("getexif-ori", String.valueOf(orientation));
         }
     };
 
@@ -163,7 +198,6 @@ public class CameraActivity extends AppCompatActivity {
         File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_PICTURES), "guideline_on_camera");
 
-
         if (!mediaStorageDir.exists()) {
             if (!mediaStorageDir.mkdirs()) {
                 Log.d(TAG, "failed to create directory");
@@ -177,9 +211,9 @@ public class CameraActivity extends AppCompatActivity {
         if (type == MEDIA_TYPE_IMAGE) {
             mediaFile = new File(mediaStorageDir.getPath() + File.separator +
                     "guideline_IMG_" + timeStamp + ".jpg");
-        } else if (type == MEDIA_TYPE_VIDEO) {
-            mediaFile = new File(mediaStorageDir.getPath() + File.separator +
-                    "guideline_VID_" + timeStamp + ".mp4");
+//        } else if (type == MEDIA_TYPE_VIDEO) {
+//            mediaFile = new File(mediaStorageDir.getPath() + File.separator +
+//                    "guideline_VID_" + timeStamp + ".mp4");
         } else {
             return null;
         }
@@ -201,13 +235,34 @@ public class CameraActivity extends AppCompatActivity {
     public boolean requestPermissionCamera() {
         int sdkVersion = Build.VERSION.SDK_INT;
         if (sdkVersion >= Build.VERSION_CODES.M) {
-
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-
                 ActivityCompat.requestPermissions(this,
                         new String[]{Manifest.permission.CAMERA},
-                        RESULT_PERMISSIONS);
+                        RESULT_CAMERA_PERMISSIONS);
             } else {
+                requestPermissionStorage();
+            }
+        } else {  // version 6 이하일때
+            setInit();
+            return true;
+        }
+
+        return true;
+    }
+
+    public boolean requestPermissionStorage() {
+        int sdkVersion = Build.VERSION.SDK_INT;
+        if (sdkVersion >= Build.VERSION_CODES.M) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                        RESULT_READ_EXTERNAL_STORAGE_PERMISSIONS);
+            } else if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        RESULT_WRITE_EXTERNAL_STORAGE_PERMISSIONS);
+            }
+            else {
                 setInit();
             }
         } else {  // version 6 이하일때
@@ -222,13 +277,35 @@ public class CameraActivity extends AppCompatActivity {
         getInstance = this;
 
         // 카메라 객체를 SurfaceView에서 먼저 정의해야 함으로 setContentView 보다 먼저 정의한다.
-        mCamera = Camera.open(CAMERA_POSITION);
+        mCamera = Camera.open(CAMERA_FACING);
+
+        Camera.Parameters camParams = mCamera.getParameters();
+
+        // Find a preview size that is at least the size of our IMAGE_SIZE
+        Camera.Size previewSize = camParams.getSupportedPreviewSizes().get(0);
+        for (Camera.Size size : camParams.getSupportedPreviewSizes()) {
+            if (size.width >= IMAGE_SIZE && size.height >= IMAGE_SIZE) {
+                previewSize = size;
+                break;
+            }
+        }
+        camParams.setPreviewSize(previewSize.width, previewSize.height);
+
+        // Try to find the closest picture size to match the preview size.
+        Camera.Size pictureSize = camParams.getSupportedPictureSizes().get(0);
+        for (Camera.Size size : camParams.getSupportedPictureSizes()) {
+            if (size.width == previewSize.width && size.height == previewSize.height) {
+                pictureSize = size;
+                break;
+            }
+        }
+        camParams.setPictureSize(pictureSize.width, pictureSize.height);
 
         setContentView(R.layout.activity_camera);
 
         // SurfaceView를 상속받은 레이아웃을 정의한다.
         surfaceView = findViewById(R.id.preview);
-
+        overlay = (RelativeLayout) findViewById(R.id.overlay);
 
         // SurfaceView 정의 - holder와 Callback을 정의한다.
         holder = surfaceView.getHolder();
@@ -241,6 +318,11 @@ public class CameraActivity extends AppCompatActivity {
         thumbnail = findViewById(R.id.thumbnail);
         guideLine = findViewById(R.id.guideLine);
 
+        // Set the height of the overlay so that it makes the preview a square
+        RelativeLayout.LayoutParams overlayParams = (RelativeLayout.LayoutParams) overlay.getLayoutParams();
+        overlayParams.height = previewHeight - previewWidth;
+        overlay.setLayoutParams(overlayParams);
+
         takePicture();
     }
 
@@ -248,12 +330,10 @@ public class CameraActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode,
                                            String permissions[], int[] grantResults) {
 
-        if (RESULT_PERMISSIONS == requestCode) {
-
+        if (RESULT_CAMERA_PERMISSIONS == requestCode) {
             if (grantResults.length > 0
                     && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // 권한 허가시
-                setInit();
+                requestPermissionStorage();
             } else {
                 // 권한 거부시
                 Toast.makeText(this, "카메라 권한이 필요합니다.", Toast.LENGTH_SHORT).show();
@@ -261,12 +341,34 @@ public class CameraActivity extends AppCompatActivity {
             }
             return;
         }
+        if (RESULT_READ_EXTERNAL_STORAGE_PERMISSIONS == requestCode) {
+            if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                requestPermissionStorage();
+            } else {
+                // 권한 거부시
+                Toast.makeText(this, "외부 스토리지 읽기 권한이 필요합니다.", Toast.LENGTH_SHORT).show();
+                finish();
+            }
+            return;
+        }
+        if (RESULT_WRITE_EXTERNAL_STORAGE_PERMISSIONS == requestCode) {
+            if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                setInit();
+            } else {
+                // 권한 거부시
+                Toast.makeText(this, "외부 스토리지 쓰기 권한이 필요합니다.", Toast.LENGTH_SHORT).show();
+                finish();
+            }
+            return;
+        }
     }
 
     // 갤러리에 추가
-    private void galleryAddPic(Uri path) {
+    private void galleryAddPic(String path) {
         Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-        mediaScanIntent.setData(path);
+        mediaScanIntent.setData(Uri.parse(path));
         this.sendBroadcast(mediaScanIntent);
     }
 
@@ -317,22 +419,22 @@ public class CameraActivity extends AppCompatActivity {
         });
     }
 
-    private String changeUriForFileNameForm(Uri uri) {
-        //Todo : 기기별로 저장위치가 다를 수 있으므로 확인해봐야함
-        //  일단 테스트중인 기기에선 가능하게 만듬
-        String rcvUri = uri.toString();
-        String resultUri = null;
-        int targetNum = rcvUri.indexOf("/storage/");
-        resultUri = rcvUri.substring(targetNum);
+//    private String changeUriForFileNameForm(Uri uri) {
+//        //  일단 테스트중인 기기에선 가능하게 만듬
+//        String rcvUri = uri.toString();
+//        String resultUri = null;
+//        int targetNum = rcvUri.indexOf("/storage/");
+//        resultUri = rcvUri.substring(targetNum);
+//
+//        Log.i(TAG, resultUri);
+//
+//        return resultUri;
+//    }
 
-        Log.i(TAG, resultUri);
-
-        return resultUri;
-    }
-
-    private void changeDisplay_PICUTURED_STATE(Uri uri) {
+    private void changeDisplay_PICUTURED_STATE(String uri) {
         // 찍은 사진의 실제 경로를 구함
-        String thumbnail_uri_real_path = changeUriForFileNameForm(uri);
+//        String thumbnail_uri_real_path = changeUriForFileNameForm(uri);
+//        String thumbnail_uri_real_path = uri.getPath();
 
         displaySetting_CAPTURED_STATE();
 
@@ -346,7 +448,7 @@ public class CameraActivity extends AppCompatActivity {
             public void onClick(View view) {
                 // 서버로 사진 업로드
                 Toast.makeText(getApplicationContext(), "사진을 서버로 전송중입니다. 잠시만 기다려주세요.", Toast.LENGTH_SHORT).show();
-                uploadImageToServer(thumbnail_uri_real_path);
+                uploadImageToServer(uri);
             }
         });
         saveBtn.setOnClickListener(new View.OnClickListener() {
@@ -362,7 +464,7 @@ public class CameraActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 if (!SAVE_FILE){
-                    delete_file(thumbnail_uri_real_path);
+                    delete_file(uri);
                 }
                 displaySetting_CAPTURING_STATE();
             }
@@ -373,13 +475,14 @@ public class CameraActivity extends AppCompatActivity {
         // 카메라 프리뷰를 다시 시작함
         setInit();
 
+        // 카메라 찍기 전 상태로 변경
         guideLine.setVisibility(View.VISIBLE);
         thumbnail.setVisibility(View.GONE);
         retryBtn.setVisibility(View.GONE);
         saveBtn.setVisibility(View.GONE);
         shotBtn.setText("cheese~~!!");
 
-        takePicture();
+//        takePicture();
     }
 
     private void displaySetting_CAPTURED_STATE() {
@@ -404,6 +507,19 @@ public class CameraActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+
+        // Get the preview size
+        previewWidth = surfaceView.getMeasuredWidth();
+        previewHeight = surfaceView.getMeasuredHeight();
+
+        // Set the height of the overlay so that it makes the preview a square
+        RelativeLayout.LayoutParams overlayParams = (RelativeLayout.LayoutParams) overlay.getLayoutParams();
+        overlayParams.height = previewHeight - previewWidth;
+        overlay.setLayoutParams(overlayParams);
+    }
 
     //Todo : 앱을 나갔다가 들어올때, 앱 위에 다른 앱이 올라왔을 때 등에서
     // 카메라를 해제하고 다시 키는 작업 수행

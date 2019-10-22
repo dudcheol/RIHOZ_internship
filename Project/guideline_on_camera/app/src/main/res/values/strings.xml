@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">guideline_on_camera</string>
+    <string name="camera_cover_image">camera_cover_image</string>
 </resources>
