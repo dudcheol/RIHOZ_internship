@@ -6,12 +6,55 @@
     android:layout_height="match_parent"
     tools:context=".CameraActivity">
 
-    <com.example.guideline_on_camera.util.CameraPreview
-        android:id="@+id/preview"
+    <FrameLayout
+        android:id="@+id/cameraPreviewFrame"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="visible" />
+        />
+<!--    <com.example.guideline_on_camera.util.CameraPreview-->
+<!--        android:id="@+id/preview"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="match_parent"-->
+<!--        android:visibility="visible"></com.example.guideline_on_camera.util.CameraPreview>-->
 
+    <RelativeLayout
+        android:id="@+id/overlay_top"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:layout_alignParentTop="true"
+        android:background="#ffffff">
+
+        <ImageView
+            android:id="@+id/camera_exit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginRight="16dp"
+            android:src="@drawable/ic_xbox"
+            android:onClick="onClick"/>
+
+        <TextView
+            android:id="@+id/camera_notice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+            android:fontFamily="@font/noto_sans_cjkkr_bold"
+            android:text="camera notice"
+            android:textColor="#272727"
+            android:textSize="18sp"
+            android:gravity="center"/>
+    </RelativeLayout>
+
+    <ImageView
+        android:id="@+id/guideLine"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/overlay_bottom"
+        android:src="@drawable/cleaner_uniform" />
     <!--<FrameLayout
         android:id="@+id/preview"
         android:layout_width="match_parent"
@@ -20,72 +63,78 @@
         android:layout_above="@+id/bottomBar"/>-->
 
     <ImageView
-        android:id="@+id/guideLine"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="fitXY"
-        android:src="@drawable/camera_cover_image" />
-
-
-    <ImageView
         android:id="@id/thumbnail"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/overlay_top"
         android:visibility="gone" />
 
     <RelativeLayout
-        android:id="@+id/overlay"
+        android:id="@+id/overlay_left"
+        android:layout_width="15dp"
+        android:layout_height="match_parent"
+        android:layout_alignParentLeft="true"
+        android:background="#ffffff" />
+
+    <RelativeLayout
+        android:id="@+id/overlay_right"
+        android:layout_width="15dp"
+        android:layout_height="match_parent"
+        android:layout_alignParentRight="true"
+        android:background="#ffffff" />
+
+    <RelativeLayout
+        android:id="@+id/overlay_bottom"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:background="#ffffff">
-        <Button
-            android:id="@+id/saveBtn"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentLeft="true"
-            android:layout_centerHorizontal="true"
-            android:layout_centerVertical="true"
-            android:layout_marginLeft="10dp"
-            android:text="저장"
-            android:visibility="gone"></Button>
+        android:background="#FFFFFF"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:paddingBottom="12dp">
 
         <Button
             android:id="@+id/shotBtn"
-            android:layout_width="wrap_content"
+            style="@style/Text_Button"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_centerHorizontal="true"
-            android:layout_centerVertical="true"
-            android:text="cheese~~!!"></Button>
+            android:background="@drawable/border_gold"
+            android:text="확인"
+            android:layout_alignParentBottom="true"
+            android:visibility="gone"
+            android:onClick="onClick"
+            />
 
-        <Button
-            android:id="@+id/retryBtn"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:id="@+id/resultBtnContainer"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_alignParentRight="true"
-            android:layout_centerHorizontal="true"
-            android:layout_centerVertical="true"
-            android:layout_marginRight="10dp"
-            android:text="다시 찍기"
-            android:visibility="gone"></Button>
+            android:orientation="horizontal"
+            android:weightSum="4"
+            android:layout_alignParentBottom="true"
+            android:visibility="gone">
+            <Button
+                android:id="@+id/retryBtn"
+                style="@style/Text_Button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/border_gray_corners2"
+                android:text="다시 촬영"
+                android:layout_weight="1"
+                android:layout_marginRight="12dp"
+                android:textColor="@color/text_gray_1"
+                android:onClick="onClick"/>
+
+            <Button
+                android:id="@+id/submitBtn"
+                style="@style/Text_Button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/border_black_corners_fill"
+                android:text="제출하기"
+                android:layout_weight="3"
+                android:textColor="@color/text_gold"
+                android:onClick="onClick"/>
+        </LinearLayout>
     </RelativeLayout>
-
-<!--    <RelativeLayout-->
-<!--        android:id="@+id/bottomBar"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="100dp"-->
-<!--        android:layout_alignParentBottom="true"-->
-<!--        android:background="#000000">-->
-
-<!--            &lt;!&ndash;        <ImageView&ndash;&gt;-->
-<!--            &lt;!&ndash;            android:id="@+id/thumbnail"&ndash;&gt;-->
-<!--            &lt;!&ndash;            android:layout_width="80dp"&ndash;&gt;-->
-<!--            &lt;!&ndash;            android:layout_height="80dp"&ndash;&gt;-->
-<!--            &lt;!&ndash;            android:layout_alignParentRight="true"&ndash;&gt;-->
-<!--            &lt;!&ndash;            android:layout_marginRight="10dp"&ndash;&gt;-->
-<!--            &lt;!&ndash;            android:layout_centerVertical="true"&ndash;&gt;-->
-<!--            &lt;!&ndash;            android:src="#ACACAC"/>&ndash;&gt;-->
-
-<!--        </RelativeLayout>-->
-
 </RelativeLayout>

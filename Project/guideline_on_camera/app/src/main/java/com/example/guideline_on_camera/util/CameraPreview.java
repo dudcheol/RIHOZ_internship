@@ -20,24 +20,25 @@ import java.io.IOException;
 import java.util.List;
 
 public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
+    private static int CAMERA_FACING;
     private String TAG = "CameraPreview_Log";
     private Camera mCamera;
     private SurfaceHolder mHolder;
-    public List<Camera.Size> listPreviewSizes;
-    private Camera.Size previewSize;
-    private Context context;
-    public static int CAMERA_FACING;
 
     // SurfaceView 생성자
-    public CameraPreview(Context context, AttributeSet attrs) {
-        super(context, attrs);
-        this.context = context;
+    public CameraPreview(Context context, int CAMERA_FACING) {
+        super(context);
+        this.CAMERA_FACING = CAMERA_FACING;
         mCamera = CameraActivity.getCamera();
         if (mCamera == null) {
             mCamera = Camera.open();
         }
-        listPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
-        CAMERA_FACING = Camera.CameraInfo.CAMERA_FACING_FRONT;
+
+        mHolder = getHolder();
+        mHolder.addCallback(this);
+
+        // deprecated setting, but required on Android versions prior to 3.0
+        mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
     }
 
     //  SurfaceView 생성시 호출
@@ -58,7 +59,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             // 카메라 회전 매개 변수를 설정해서 이미지를 저장할 때 회전되서 저장되도록 함
             setCameraDisplayOrientation(CameraActivity.getInstance, CAMERA_FACING, mCamera);
 
-//            mCamera.setParameters(parameters);
+//          mCamera.setParameters(parameters);
 
             mCamera.setPreviewDisplay(surfaceHolder);
 
@@ -76,6 +77,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         } catch (IOException e) {
             mCamera.release();
             mCamera = null;
+            Log.d(TAG, "Error setting camera preview: " + e.getMessage());
         }
     }
 
@@ -124,10 +126,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
         Log.i("getCameradisplay", String.valueOf(result));
 
-        Camera.Parameters params = camera.getParameters();
-        params.setRotation(result);
         camera.setDisplayOrientation(result);
-        camera.setParameters(params);
     }
 
     public static int getCameraDisplayOrientation(Activity activity, int cameraId) {
@@ -159,10 +158,6 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         } else {  // back-facing
             result = (info.orientation - degrees + 360) % 360;
         }
-//        Camera.Parameters params = camera.getParameters();
-//        params.setRotation(result);
-//        camera.setParameters(params);
-//        camera.setDisplayOrientation(result);
         return result;
     }
 

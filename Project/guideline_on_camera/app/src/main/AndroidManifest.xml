@@ -17,7 +17,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".ThumbnailActivity"></activity>
+        <activity android:name=".ThumbnailActivity" />
         <activity
             android:name=".CameraActivity"
             android:screenOrientation="portrait" />

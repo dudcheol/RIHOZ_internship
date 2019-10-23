@@ -2,11 +2,16 @@ package com.example.guideline_on_camera;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -27,10 +32,12 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 
 public class MainActivity extends AppCompatActivity {
-
+    private int RESULT_CAMERA_PERMISSIONS = 100;
+    private int RESULT_READ_EXTERNAL_STORAGE_PERMISSIONS = 200;
+    private int RESULT_WRITE_EXTERNAL_STORAGE_PERMISSIONS = 300;
     private static final String TAG = "MAIN_LOG";
     private static int REQUEST_IMAGE_GET = 1000;
-    private Button btn, sendImg;
+    private Button btn, sendImg, idcard_camera;
     private ImageView selectedImage;
     private String url;
 
@@ -42,9 +49,19 @@ public class MainActivity extends AppCompatActivity {
         btn = findViewById(R.id.go_to_camera);
         sendImg = findViewById(R.id.sendImg);
         selectedImage = findViewById(R.id.selectedImage);
+        idcard_camera = findViewById(R.id.idcard_camera);
+
+        requestPermissionCamera();
+
+        idcard_camera.setOnClickListener(v -> {
+            Intent intent = new Intent(this, CameraActivity.class);
+            intent.putExtra("View",1);
+            startActivity(intent);
+        });
 
         btn.setOnClickListener(v -> {
             Intent intent = new Intent(this, CameraActivity.class);
+            intent.putExtra("View",2);
             startActivity(intent);
         });
 
@@ -129,6 +146,82 @@ public class MainActivity extends AppCompatActivity {
             if (cursor != null) {
                 cursor.close();
             }
+        }
+    }
+
+    public boolean requestPermissionCamera() {
+        int sdkVersion = Build.VERSION.SDK_INT;
+        if (sdkVersion >= Build.VERSION_CODES.M) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.CAMERA},
+                        RESULT_CAMERA_PERMISSIONS);
+            } else {
+                requestPermissionStorage();
+            }
+        } else {  // version 6 이하일때
+            return true;
+        }
+
+        return true;
+    }
+
+    public boolean requestPermissionStorage() {
+        int sdkVersion = Build.VERSION.SDK_INT;
+        if (sdkVersion >= Build.VERSION_CODES.M) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                        RESULT_READ_EXTERNAL_STORAGE_PERMISSIONS);
+            } else if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        RESULT_WRITE_EXTERNAL_STORAGE_PERMISSIONS);
+            }
+            else {
+            }
+        } else {  // version 6 이하일때
+            return true;
+        }
+
+        return true;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+
+        if (RESULT_CAMERA_PERMISSIONS == requestCode) {
+            if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                requestPermissionStorage();
+            } else {
+                // 권한 거부시
+                Toast.makeText(this, "카메라 권한이 필요합니다.", Toast.LENGTH_SHORT).show();
+//                finish();
+            }
+            return;
+        }
+        if (RESULT_READ_EXTERNAL_STORAGE_PERMISSIONS == requestCode) {
+            if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                requestPermissionStorage();
+            } else {
+                // 권한 거부시
+                Toast.makeText(this, "외부 스토리지 읽기 권한이 필요합니다.", Toast.LENGTH_SHORT).show();
+//                finish();
+            }
+            return;
+        }
+        if (RESULT_WRITE_EXTERNAL_STORAGE_PERMISSIONS == requestCode) {
+            if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            } else {
+                // 권한 거부시
+                Toast.makeText(this, "외부 스토리지 쓰기 권한이 필요합니다.", Toast.LENGTH_SHORT).show();
+//                finish();
+            }
+            return;
         }
     }
 }

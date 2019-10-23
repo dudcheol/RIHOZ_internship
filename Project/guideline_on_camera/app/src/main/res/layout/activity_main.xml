@@ -20,13 +20,20 @@
             android:layout_centerHorizontal="true"/>
 
         <Button
-            android:id="@+id/go_to_camera"
+            android:id="@+id/idcard_camera"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="camera"
+            android:text="ID card camera"
             android:layout_below="@+id/txt"
             android:layout_centerHorizontal="true"/>
 
+        <Button
+            android:id="@+id/go_to_camera"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="PROFILE camera"
+            android:layout_below="@+id/idcard_camera"
+            android:layout_centerHorizontal="true"/>
         <Button
             android:id="@+id/sendImg"
             android:layout_width="wrap_content"
