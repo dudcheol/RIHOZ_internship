@@ -309,7 +309,6 @@ public class CameraActivity extends AppCompatActivity {
                     mCamera.startPreview();
                     previewState = CAMERA_STATE_PREVIEW;
                     break;
-
                 default:
                     mCamera.takePicture(null, null, mPicture);
                     previewState = CAMERA_STATE_BUSY;
@@ -469,7 +468,7 @@ public class CameraActivity extends AppCompatActivity {
                 changeViewSetting(IDCARD_CAMERA_VIEW);
                 break;
             case R.id.submitBtn:
-                
+
                 break;
             case R.id.camera_exit:
                 finish();
@@ -572,23 +571,14 @@ public class CameraActivity extends AppCompatActivity {
 
     //Todo : 앱을 나갔다가 들어올때, 앱 위에 다른 앱이 올라왔을 때 등에서
     // 카메라를 해제하고 다시 키는 작업 수행
-    /*@Override
+    @Override
     protected void onResume() {
         super.onResume();
+        Log.i("CameraPreview_Log",mCamera.toString());
         if (mCamera == null) {
-            mCamera=getCameraInstance();
-            mPreview = new CameraPreview(this.getActivity(), mCamera);
-            preview.addView(mPreview);
+            initCameraSetting();
+            cameraPreview_open();
+            takePicture();
         }
     }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if (mCamera != null){
-            cameraPreview.getHolder().removeCallback(cameraPreview);
-            mCamera.release();
-            mCamera = null;
-        }
-    }*/
 }

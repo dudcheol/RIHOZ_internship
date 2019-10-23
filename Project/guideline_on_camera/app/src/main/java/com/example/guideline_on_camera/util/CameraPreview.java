@@ -151,11 +151,14 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
                 break;
         }
         int result;
-        if (info.facing == CAMERA_FACING) {
-            Log.i("getMirror","mirror");
+        Log.i("facing","camera info = " + info.facing + " / receive parameter" + CAMERA_FACING);
+        Log.i("facing", Camera.CameraInfo.CAMERA_FACING_FRONT + "< front / back >" + Camera.CameraInfo.CAMERA_FACING_BACK);
+        if (CAMERA_FACING == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            Log.i("facing","front");
             result = (info.orientation + degrees) % 360;
             result = (360 - result) % 360;  // compensate the mirror
         } else {  // back-facing
+            Log.i("facing","back");
             result = (info.orientation - degrees + 360) % 360;
         }
         return result;
