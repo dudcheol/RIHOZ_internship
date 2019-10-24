@@ -11,6 +11,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.graphics.Point;
 import android.hardware.Camera;
 import android.media.ExifInterface;
 import android.net.Uri;
@@ -18,6 +19,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.View;
@@ -54,7 +56,8 @@ import retrofit2.Retrofit;
 
 import static android.view.View.getDefaultSize;
 import static com.example.guideline_on_camera.util.CameraPreview.getCameraDisplayOrientation;
-import static com.example.guideline_on_camera.util.CameraPreview.rotate;
+import static com.example.guideline_on_camera.util.CameraPreview.invertBitmap;
+import static com.example.guideline_on_camera.util.CameraPreview.rotateBitmap;
 
 public class CameraActivity extends AppCompatActivity {
 
@@ -73,18 +76,17 @@ public class CameraActivity extends AppCompatActivity {
     private final int CAMERA_STATE_PREVIEW = 3;
 
     private Button shotBtn, retryBtn, submitBtn;
-    private ImageView thumbnail, guideLine;
+    private ImageView thumbnail, cleaner_uniform;
     private RelativeLayout overlay_top, overlay_bottom;
     private TextView camera_notice;
     private RelativeLayout.LayoutParams overlayParams_top, overlayParams_bottom;
     private LinearLayout resultBtnContainer;
     private FrameLayout cameraPreviewFrame;
 
-    private int previewWidth;
-    private int previewHeight;
-
     private boolean SAVE_FILE = false;
     private int VIEW_TYPE;
+    public final int VIEW_TYPE_IDCARD=1;
+    public final int VIEW_TYPE_PROFILE=2;
 
     //view : IDCARD
     private final int IDCARD_EXAMPLE_VIEW = 1000;
@@ -138,7 +140,7 @@ public class CameraActivity extends AppCompatActivity {
         retryBtn = findViewById(R.id.retryBtn);
         submitBtn = findViewById(R.id.submitBtn);
         thumbnail = findViewById(R.id.thumbnail);
-        guideLine = findViewById(R.id.guideLine);
+        cleaner_uniform = findViewById(R.id.cleaner_uniform);
         camera_notice = findViewById(R.id.camera_notice);
         overlay_top = findViewById(R.id.overlay_top);
         overlay_bottom = findViewById(R.id.overlay_bottom);
@@ -156,7 +158,12 @@ public class CameraActivity extends AppCompatActivity {
 //        holder.addCallback(cameraPreview);
 //        holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 
-        changeViewSetting(IDCARD_CAMERA_VIEW);
+        if(VIEW_TYPE == VIEW_TYPE_IDCARD){
+            changeViewSetting(IDCARD_CAMERA_VIEW);
+        }
+        if (VIEW_TYPE == VIEW_TYPE_PROFILE) {
+            changeViewSetting(PROFILE_CAMERA_VIEW);
+        }
     }
 
     // takePicture 콜백 메서드
@@ -174,14 +181,13 @@ public class CameraActivity extends AppCompatActivity {
             try {
                 FileOutputStream fos = new FileOutputStream(pictureFile);
 //                fos.write(data);
-//                int angleToRotate = getCameraDisplayOrientation(CameraActivity.getInstance, Camera.CameraInfo.CAMERA_FACING_FRONT);
-//                // Solve image inverting problem
-//                angleToRotate = angleToRotate + 90;
-//                Bitmap orignalImage = BitmapFactory.decodeByteArray(data, 0, data.length);
-//                Bitmap bitmapImage = rotate(orignalImage, angleToRotate);
-//                bitmapImage.compress(Bitmap.CompressFormat.JPEG, 100, fos);
-                Bitmap resultBitmap = processImage(data);
-                resultBitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+                int angleToRotate = getCameraDisplayOrientation(CameraActivity.getInstance, CAMERA_FACING);
+                Bitmap orignalImage = BitmapFactory.decodeByteArray(data, 0, data.length);
+                Bitmap resultImage = rotateBitmap(orignalImage, angleToRotate);
+                if(CAMERA_FACING == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                    resultImage = invertBitmap(resultImage);
+                }
+                resultImage.compress(Bitmap.CompressFormat.JPEG, 100, fos);
                 fos.flush();
                 fos.close();
 
@@ -254,34 +260,45 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void initCameraSetting() {
-        switch (VIEW_TYPE){
-            case 1:
-                CAMERA_FACING = Camera.CameraInfo.CAMERA_FACING_BACK;
-                break;
-            case 2:
-                CAMERA_FACING = Camera.CameraInfo.CAMERA_FACING_FRONT;
-                break;
-        }
-        getInstance = this;
-
-        // 공통설정
+        // Todo : 카메라 화질관련해서 아직 미완임
         // 카메라 객체를 cameraPreview에서 먼저 정의해야 함으로 setContentView 보다 먼저 정의한다.
-        mCamera = Camera.open(CAMERA_FACING);
-
-        Camera.Parameters camParams = mCamera.getParameters();
-
-        // Find a preview size that is at least the size of our IMAGE_SIZE
-        Camera.Size previewSize = camParams.getSupportedPreviewSizes().get(0);
-        for (Camera.Size size : camParams.getSupportedPreviewSizes()) {
-            if (size.width >= IMAGE_SIZE && size.height >= IMAGE_SIZE) {
-                previewSize = size;
+        getInstance = this;
+        Camera.Parameters camParams = null;
+        Camera.Size previewSize = null;
+        Camera.Size pictureSize;
+        switch (VIEW_TYPE){
+            case VIEW_TYPE_IDCARD: // id card
+                CAMERA_FACING = Camera.CameraInfo.CAMERA_FACING_BACK;
+                mCamera = Camera.open(CAMERA_FACING);
+                camParams = mCamera.getParameters();
+                // 기기에서 제공하는 가장 좋은 화질을 사용한다.
+                previewSize = camParams.getSupportedPreviewSizes().get(0);
+                Log.i("bestpreviewSize:",previewSize.width + " <- width / height -> " + previewSize.height + "");
                 break;
-            }
+            case VIEW_TYPE_PROFILE: // profile
+                CAMERA_FACING = Camera.CameraInfo.CAMERA_FACING_FRONT;
+                mCamera = Camera.open(CAMERA_FACING);
+                camParams = mCamera.getParameters();
+                // IMAGE_SIZE 보다 사이즈가 큰 해상도들을 찾아서 그 중 가장 작은 것을 previewSize로 설정한다.
+                previewSize = camParams.getSupportedPreviewSizes().get(0);
+                Log.i("bestpreviewsize:",previewSize.width + " <- width / height -> " + previewSize.height + "");
+                for (Camera.Size size : camParams.getSupportedPreviewSizes()) {
+                    if (size.width >= IMAGE_SIZE && size.height >= IMAGE_SIZE) {
+                        previewSize = size;
+                        break;
+                    }
+                }
+                break;
         }
-        camParams.setPreviewSize(previewSize.width, previewSize.height);
-
-        // Try to find the closest picture size to match the preview size.
-        Camera.Size pictureSize = camParams.getSupportedPictureSizes().get(0);
+        if(previewSize != null){
+            camParams.setPreviewSize(previewSize.width, previewSize.height);
+            Log.i("PreviewSizesX:",previewSize.width+"");
+            Log.i("PreviewSizesY:",previewSize.height+"");   
+        } else Toast.makeText(getInstance, "previewSize not founded", Toast.LENGTH_SHORT).show();
+        
+        // preview size와 가장 근접한 picture size를 찾는다
+        pictureSize = camParams.getSupportedPictureSizes().get(0);
+        Log.i("bestpictureSize:",pictureSize.width + " <- width / height -> " + pictureSize.height + "");
         for (Camera.Size size : camParams.getSupportedPictureSizes()) {
             if (size.width == previewSize.width && size.height == previewSize.height) {
                 pictureSize = size;
@@ -289,17 +306,19 @@ public class CameraActivity extends AppCompatActivity {
             }
         }
         camParams.setPictureSize(pictureSize.width, pictureSize.height);
+        Log.i("PictureSizesX:",pictureSize.width+"");
+        Log.i("PictureSizesY:",pictureSize.height+"");
     }
 
     private void takePicture() {
-        for(int i=0;i<mCamera.getParameters().getSupportedPreviewSizes().size();i++) {
-            Log.i("PreviewSizesX:",mCamera.getParameters().getSupportedPreviewSizes().get(i).width+"");
-            Log.i("PreviewSizesY:",mCamera.getParameters().getSupportedPreviewSizes().get(i).height+"");
-        }
-        for(int i=0;i<mCamera.getParameters().getSupportedPictureSizes().size();i++) {
-            Log.i("PictureSizesX:",mCamera.getParameters().getSupportedPictureSizes().get(i).width+"");
-            Log.i("PictureSizesY:",mCamera.getParameters().getSupportedPictureSizes().get(i).height+"");
-        }
+//        for(int i=0;i<mCamera.getParameters().getSupportedPreviewSizes().size();i++) {
+//            Log.i("PreviewSizesX:",mCamera.getParameters().getSupportedPreviewSizes().get(i).width+"");
+//            Log.i("PreviewSizesY:",mCamera.getParameters().getSupportedPreviewSizes().get(i).height+"");
+//        }
+//        for(int i=0;i<mCamera.getParameters().getSupportedPictureSizes().size();i++) {
+//            Log.i("PictureSizesX:",mCamera.getParameters().getSupportedPictureSizes().get(i).width+"");
+//            Log.i("PictureSizesY:",mCamera.getParameters().getSupportedPictureSizes().get(i).height+"");
+//        }
 
         shotBtn.setOnClickListener(v -> {
             // Todo : 카메라 프리뷰 스테이트를 사용하여 카메라 버튼 클릭별 동작 설정
@@ -390,7 +409,7 @@ public class CameraActivity extends AppCompatActivity {
     private void viewSetting_allDisappear(){
         thumbnail.setVisibility(View.GONE);
         shotBtn.setVisibility(View.GONE);
-        guideLine.setVisibility(View.GONE);
+        cleaner_uniform.setVisibility(View.GONE);
         resultBtnContainer.setVisibility(View.GONE);
     }
 
@@ -402,7 +421,7 @@ public class CameraActivity extends AppCompatActivity {
 
                 break;
             case IDCARD_CAMERA_VIEW:
-                shotBtn.setText("확인");
+                shotBtn.setText("사진찍기");
                 shotBtn.setVisibility(View.VISIBLE);
                 camera_notice.setText("신분증 전체가 잘 보이게 촬영해주세요");
                 break;
@@ -420,7 +439,10 @@ public class CameraActivity extends AppCompatActivity {
 
                 break;
             case PROFILE_CAMERA_VIEW:
-
+                shotBtn.setText("사진찍기");
+                shotBtn.setVisibility(View.VISIBLE);
+                camera_notice.setText("목과 턱을 선에 맞춰 찍어주세요");
+                cleaner_uniform.setVisibility(View.VISIBLE);
                 break;
             case PROFILE_CAPTURED_ERR_VIEW:
 
@@ -436,23 +458,35 @@ public class CameraActivity extends AppCompatActivity {
         super.onWindowFocusChanged(hasFocus);
         Log.i("생명주기확인","onWindowFocusChanged");
 
-        // preview size 얻기
-        previewWidth = cameraPreview.getMeasuredWidth();
-        previewHeight = cameraPreview.getMeasuredHeight();
-        Log.i("preview size",previewWidth+", "+previewHeight);
+        // preview의 width size 얻기
+        float overlaySide_px = 16 * getResources().getDisplayMetrics().density; // dp를 px로
+        int previewWidth = cameraPreview.getMeasuredWidth();
+        previewWidth -= (overlaySide_px*2);
 
-        // 탑, 바텀 오버레이 설정
-        int previewSpace = previewHeight - previewWidth;
+        // Todo : 상단바 / 네비게이터의 높이는 고려하지 않았음
+        // screen의 height size 얻기
+        Point point = new Point();
+        this.getWindowManager().getDefaultDisplay().getSize(point);
+        int screenHeight = point.y;
+
+        int previewHeight;
+        int overlayHeight;
         switch (VIEW_TYPE){
-            case 1:
-                overlayParams_top.height = previewSpace/5*2;
-                overlayParams_bottom.height = previewSpace/5*3;
+            case VIEW_TYPE_IDCARD:
+                // id card 탑, 바텀 오버레이 설정
+                previewHeight = (int)(previewWidth * 0.64);
+                overlayHeight = screenHeight - previewHeight;
+                overlayParams_top.height = overlayHeight/11*3;
+                overlayParams_bottom.height = overlayHeight/11*8;
                 overlay_top.setLayoutParams(overlayParams_top);
                 overlay_bottom.setLayoutParams(overlayParams_bottom);
                 break;
-            case 2:
-                overlayParams_top.height = previewSpace/5*2;
-                overlayParams_bottom.height = previewSpace/5*3;
+            case VIEW_TYPE_PROFILE:
+                // frofile 탑, 바텀 오버레이 설정
+                previewHeight = (int)(previewWidth * 1.15);
+                overlayHeight = screenHeight - previewHeight;
+                overlayParams_top.height = overlayHeight/13*6;
+                overlayParams_bottom.height = overlayHeight/13*7;
                 overlay_top.setLayoutParams(overlayParams_top);
                 overlay_bottom.setLayoutParams(overlayParams_bottom);
                 break;
@@ -538,36 +572,36 @@ public class CameraActivity extends AppCompatActivity {
 //        shotBtn.setText("서버 전송");
 //    }
 
-    private Bitmap processImage(byte[] data) throws IOException {
-        // Determine the width/height of the image
-        int width = mCamera.getParameters().getPictureSize().width;
-        int height = mCamera.getParameters().getPictureSize().height;
-        int angleToRotate = getCameraDisplayOrientation(CameraActivity.getInstance, CAMERA_FACING);
-
-        // Load the bitmap from the byte array
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-        Bitmap orignalImage = BitmapFactory.decodeByteArray(data, 0, data.length, options);
-
-        int croppedWidth = (width > height) ? height : width;
-        int croppedHeight = (width > height) ? height : width;
-
-        Matrix matrix = new Matrix();
-        // Solve image inverting problem
-        //angleToRotate = angleToRotate + 90;
-        Log.i("orient",angleToRotate+"");
-        Bitmap rotatedImage = rotate(orignalImage, angleToRotate);
-
-        // Rotate and crop the image into a square
-        Bitmap cropped = Bitmap.createBitmap(rotatedImage, 0, 0, croppedWidth, croppedHeight, matrix, true);
-        rotatedImage.recycle();
-
-        // Scale down to the output size
-        Bitmap scaledBitmap = Bitmap.createScaledBitmap(cropped, IMAGE_SIZE, IMAGE_SIZE, true);
-        cropped.recycle();
-
-        return scaledBitmap;
-    }
+//    private Bitmap processImage(byte[] data) throws IOException {
+//        // Determine the width/height of the image
+//        int width = mCamera.getParameters().getPictureSize().width;
+//        int height = mCamera.getParameters().getPictureSize().height;
+//        int angleToRotate = getCameraDisplayOrientation(CameraActivity.getInstance, CAMERA_FACING);
+//
+//        // Load the bitmap from the byte array
+//        BitmapFactory.Options options = new BitmapFactory.Options();
+//        options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+//        Bitmap orignalImage = BitmapFactory.decodeByteArray(data, 0, data.length, options);
+//
+//        int croppedWidth = (width > height) ? height : width;
+//        int croppedHeight = (width > height) ? height : width;
+//
+//        Matrix matrix = new Matrix();
+//        // Solve image inverting problem
+//        //angleToRotate = angleToRotate + 90;
+//        Log.i("orient",angleToRotate+"");
+//        Bitmap rotatedImage = rotate(orignalImage, angleToRotate);
+//
+//        // Rotate and crop the image into a square
+//        Bitmap cropped = Bitmap.createBitmap(rotatedImage, 0, 0, croppedWidth, croppedHeight, matrix, true);
+//        rotatedImage.recycle();
+//
+//        // Scale down to the output size
+//        Bitmap scaledBitmap = Bitmap.createScaledBitmap(cropped, IMAGE_SIZE, IMAGE_SIZE, true);
+//        cropped.recycle();
+//
+//        return scaledBitmap;
+//    }
 
     //Todo : 앱을 나갔다가 들어올때, 앱 위에 다른 앱이 올라왔을 때 등에서
     // 카메라를 해제하고 다시 키는 작업 수행

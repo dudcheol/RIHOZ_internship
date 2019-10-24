@@ -130,11 +130,9 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     }
 
     public static int getCameraDisplayOrientation(Activity activity, int cameraId) {
-        android.hardware.Camera.CameraInfo info =
-                new android.hardware.Camera.CameraInfo();
+        android.hardware.Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
         android.hardware.Camera.getCameraInfo(cameraId, info);
-        int rotation = activity.getWindowManager().getDefaultDisplay()
-                .getRotation();
+        int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
         int degrees = 0;
         switch (rotation) {
             case Surface.ROTATION_0:
@@ -151,27 +149,31 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
                 break;
         }
         int result;
-        Log.i("facing","camera info = " + info.facing + " / receive parameter" + CAMERA_FACING);
+        Log.i("facing","camera info = " + info.facing + " / CAMERA_FACING = " + CAMERA_FACING);
         Log.i("facing", Camera.CameraInfo.CAMERA_FACING_FRONT + "< front / back >" + Camera.CameraInfo.CAMERA_FACING_BACK);
         if (CAMERA_FACING == Camera.CameraInfo.CAMERA_FACING_FRONT) {
             Log.i("facing","front");
             result = (info.orientation + degrees) % 360;
             result = (360 - result) % 360;  // compensate the mirror
+            Log.i("facing-front-result",result+"");
         } else {  // back-facing
             Log.i("facing","back");
             result = (info.orientation - degrees + 360) % 360;
+            Log.i("facing-back-result",result+"");
         }
+        Log.i("facing-result",result+"");
         return result;
     }
 
-    public static Bitmap rotate(Bitmap bitmap, int degree) {
-        int w = bitmap.getWidth();
-        int h = bitmap.getHeight();
-
+    public static Bitmap rotateBitmap(Bitmap bitmap, int degree) {
         Matrix mtx = new Matrix();
-        mtx.setScale(-1,1);
         mtx.postRotate(degree);
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), mtx, true);
+    }
 
-        return Bitmap.createBitmap(bitmap, 0, 0, w, h, mtx, true);
+    public static Bitmap invertBitmap(Bitmap bitmap) {
+        Matrix mtx = new Matrix();
+        mtx.setScale(1,-1);
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), mtx, true);
     }
 }
