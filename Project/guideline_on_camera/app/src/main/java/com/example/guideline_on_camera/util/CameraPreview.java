@@ -6,10 +6,12 @@ import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.graphics.Point;
 import android.hardware.Camera;
 import android.nfc.Tag;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.Display;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -22,8 +24,10 @@ import java.util.List;
 public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
     private static int CAMERA_FACING;
     private String TAG = "CameraPreview_Log";
-    private Camera mCamera;
+    private static Camera mCamera;
     private SurfaceHolder mHolder;
+    private Camera.Size previewSize;
+    private Camera.Parameters camParams;
 
     // SurfaceView 생성자
     public CameraPreview(Context context, int CAMERA_FACING) {
@@ -50,22 +54,29 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             if (mCamera == null) {
                 mCamera = Camera.open();
             }
+            camParams = mCamera.getParameters();
+            previewSize = getOptimalPreviewSize(camParams.getSupportedPreviewSizes());
 
-            // 카메라 설정
-//            Camera.Parameters parameters = mCamera.getParameters();
+            // preview size와 가장 근접한 picture size를 찾고 그것을 picturesize로 설정한다.
+            Camera.Size pictureSize = camParams.getSupportedPictureSizes().get(0);
+            Log.i("bestpictureSize:", pictureSize.width + " <- width / height -> " + pictureSize.height + "");
+            for (Camera.Size size : camParams.getSupportedPictureSizes()) {
+                if (size.width == previewSize.width && size.height == previewSize.height) {
+                    pictureSize = size;
+                    break;
+                }
+            }
+            camParams.setPictureSize(pictureSize.width, pictureSize.height);
+            Log.i(TAG, "picturesize width: "+pictureSize.width + "");
+            Log.i(TAG, "picturesize height: "+pictureSize.height + "");
 
             // 카메라 프리뷰 회전을 세로로 고정하고
             // 카메라 회전 매개 변수를 설정해서 이미지를 저장할 때 회전되서 저장되도록 함
             setCameraDisplayOrientation(CameraActivity.getInstance, CAMERA_FACING, mCamera);
-
-//          mCamera.setParameters(parameters);
-
             mCamera.setPreviewDisplay(surfaceHolder);
 
             // 카메라 미리보기를 시작한다.
             mCamera.startPreview();
-
-
 
             // 자동포커스 설정
             mCamera.autoFocus(new Camera.AutoFocusCallback() {
@@ -95,10 +106,15 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         // 프리뷰를 다시 설정한다.
         try {
             mCamera.stopPreview();
+            // 새로 변경된 설정으로 프리뷰를 시작한다
+
+            camParams.setPreviewSize(previewSize.width, previewSize.height);
+            mCamera.setParameters(camParams);
+
+            Log.i(TAG, "PreviewSizes width: " + previewSize.width + "");
+            Log.i(TAG, "PreviewSizes height: " + previewSize.height + "");
 
             setCameraDisplayOrientation(CameraActivity.getInstance, CAMERA_FACING, mCamera);
-
-            // 새로 변경된 설정으로 프리뷰를 시작한다
             mCamera.setPreviewDisplay(surfaceHolder);
             mCamera.startPreview();
 
@@ -176,5 +192,57 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         Matrix mtx = new Matrix();
         mtx.setScale(1,-1);
         return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), mtx, true);
+    }
+
+    public static Camera.Size getOptimalPreviewSize(List<Camera.Size> sizes)
+    {
+        final double ASPECT_TOLERANCE = 0.05;
+        if( sizes == null )
+            return null;
+
+        Camera.Size optimalSize = null;
+        double minDiff = Double.MAX_VALUE;
+        Point display_size = new Point();
+
+        Display display = CameraActivity.getInstance.getWindowManager().getDefaultDisplay();
+
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+//            display.getRealSize(display_size);
+//        } else {
+//            display.getSize(display_size);
+//        }
+        display.getSize(display_size);
+        Log.d("CameraPreview_Log", "display_size: " + display_size.x + " x " + display_size.y);
+
+        double targetRatio = ((double)mCamera.getParameters().getPictureSize().width) / (double)mCamera.getParameters().getPictureSize().height;
+        Log.d("CameraPreview_Log","targetRatio: "+targetRatio);
+        int targetHeight = Math.min(display_size.y, display_size.x);
+        Log.d("CameraPreview_Log","targetHeight: "+targetHeight);
+        if( targetHeight <= 0 ) {
+            targetHeight = display_size.y;
+        }
+        // Try to find the size which matches the aspect ratio, and is closest match to display height
+        for(Camera.Size size : sizes)
+        {
+            Log.d("CameraPreview_Log", "    supported preview size: " + size.width + ", " + size.height);
+            double ratio = (double)size.width / size.height;
+            if( Math.abs(ratio - targetRatio) > ASPECT_TOLERANCE )
+                continue;
+            if( Math.abs(size.height - targetHeight) < minDiff ) {
+                optimalSize = size;
+                minDiff = Math.abs(size.height - targetHeight);
+            }
+        }
+        if( optimalSize == null )
+        {
+            // can't find match for aspect ratio, so find closest one
+            Log.d("CameraPreview_Log", "no preview size matches the aspect ratio");
+//            optimalSize = getClosestSize(sizes, targetRatio);
+            // Todo : optimal한 사이즈가 없는 경우에 처리
+        }
+
+        Log.d("CameraPreview_Log", "chose optimalSize: " + optimalSize.width + " x " + optimalSize.height);
+        Log.d("CameraPreview_Log", "optimalSize ratio: " + ((double)optimalSize.width / optimalSize.height));
+        return optimalSize;
     }
 }

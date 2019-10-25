@@ -23,8 +23,7 @@
         android:layout_width="match_parent"
         android:layout_height="100dp"
         android:layout_alignParentTop="true"
-        android:background="#ffffff"
-        android:visibility="gone">
+        android:background="#ffffff">
 
         <ImageView
             android:id="@+id/camera_exit"
@@ -78,16 +77,14 @@
         android:layout_width="16dp"
         android:layout_height="match_parent"
         android:layout_alignParentLeft="true"
-        android:background="#ffffff"
-        android:visibility="gone"/>
+        android:background="#ffffff" />
 
     <RelativeLayout
         android:id="@+id/overlay_right"
         android:layout_width="16dp"
         android:layout_height="match_parent"
         android:layout_alignParentRight="true"
-        android:background="#ffffff"
-        android:visibility="gone"/>
+        android:background="#ffffff" />
 
     <RelativeLayout
         android:id="@+id/overlay_bottom"
@@ -97,8 +94,7 @@
         android:background="#FFFFFF"
         android:paddingLeft="10dp"
         android:paddingRight="10dp"
-        android:paddingBottom="12dp"
-        android:visibility="gone">
+        android:paddingBottom="12dp">
 
         <Button
             android:id="@+id/shotBtn"
