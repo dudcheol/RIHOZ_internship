@@ -36,7 +36,6 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
         mHolder = getHolder();
         mHolder.addCallback(this);
-
         // deprecated setting, but required on Android versions prior to 3.0
         mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
     }
@@ -65,6 +64,8 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
             // 카메라 미리보기를 시작한다.
             mCamera.startPreview();
+
+
 
             // 자동포커스 설정
             mCamera.autoFocus(new Camera.AutoFocusCallback() {
