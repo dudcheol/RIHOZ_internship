@@ -31,7 +31,7 @@ public class NetworkClient {
 
     public interface UploadAPIs {
         @Multipart
-        @POST("/fileUpload")
-        Call<ResponseBody> uploadImage(@Part MultipartBody.Part file, @Part("description") RequestBody requestBody);
+        @POST("/fileStorage")
+        Call<ResponseBody> uploadImage(@Part MultipartBody.Part file, @Part("description") RequestBody requestBody, @Part("angle") RequestBody angle);
     }
 }

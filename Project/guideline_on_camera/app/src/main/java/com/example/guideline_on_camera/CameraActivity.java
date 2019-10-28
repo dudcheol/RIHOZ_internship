@@ -1,14 +1,12 @@
 package com.example.guideline_on_camera;
 
-import androidx.appcompat.app.AppCompatActivity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Point;
 import android.hardware.Camera;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
@@ -22,6 +20,8 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.guideline_on_camera.network.NetworkClient;
 import com.example.guideline_on_camera.util.CameraPreview;
@@ -43,8 +43,6 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 
 import static com.example.guideline_on_camera.util.CameraPreview.getCameraDisplayOrientation;
-import static com.example.guideline_on_camera.util.CameraPreview.invertBitmap;
-import static com.example.guideline_on_camera.util.CameraPreview.rotateBitmap;
 
 public class CameraActivity extends AppCompatActivity {
 
@@ -64,16 +62,16 @@ public class CameraActivity extends AppCompatActivity {
 
     private Button shotBtn, retryBtn, submitBtn;
     private ImageView thumbnail, cleaner_uniform;
-    private RelativeLayout overlay_top, overlay_bottom;
+    private RelativeLayout overlay_top, overlay_bottom, previewArea;
     private TextView camera_notice;
-    private RelativeLayout.LayoutParams overlayParams_top, overlayParams_bottom;
+    private RelativeLayout.LayoutParams overlayParams_top, overlayParams_bottom, overlayParams_previewArea;
     private LinearLayout resultBtnContainer;
     private FrameLayout cameraPreviewFrame;
 
     private boolean SAVE_FILE = false;
     private int VIEW_TYPE;
-    public final int VIEW_TYPE_IDCARD=1;
-    public final int VIEW_TYPE_PROFILE=2;
+    public final int VIEW_TYPE_IDCARD = 1;
+    public final int VIEW_TYPE_PROFILE = 2;
 
     //view : IDCARD
     private final int IDCARD_EXAMPLE_VIEW = 1000;
@@ -103,7 +101,7 @@ public class CameraActivity extends AppCompatActivity {
         initCameraSetting();
         setContentView(R.layout.activity_camera);
 
-        Log.i("생명주기확인","onCreate");
+        Log.i("생명주기확인", "onCreate");
 
         checkCameraHardwareUsable(this);
         initSetting();
@@ -133,12 +131,15 @@ public class CameraActivity extends AppCompatActivity {
         overlay_bottom = findViewById(R.id.overlay_bottom);
         overlayParams_top = (RelativeLayout.LayoutParams) overlay_top.getLayoutParams();
         overlayParams_bottom = (RelativeLayout.LayoutParams) overlay_bottom.getLayoutParams();
+        previewArea = findViewById(R.id.previewArea);
+        overlayParams_previewArea = (RelativeLayout.LayoutParams) previewArea.getLayoutParams();
         resultBtnContainer = findViewById(R.id.resultBtnContainer);
         cameraPreviewFrame = findViewById(R.id.cameraPreviewFrame);
 
+
         cameraPreview_open();
 
-        if(VIEW_TYPE == VIEW_TYPE_IDCARD){
+        if (VIEW_TYPE == VIEW_TYPE_IDCARD) {
             changeViewSetting(IDCARD_CAMERA_VIEW);
         }
         if (VIEW_TYPE == VIEW_TYPE_PROFILE) {
@@ -156,37 +157,61 @@ public class CameraActivity extends AppCompatActivity {
                 return;
             }
 
-            Log.i("file_name",pictureFile.getPath());
+            Log.i("file_name", pictureFile.getPath());
+            uploadImageToServer(data);
 
             try {
                 FileOutputStream fos = new FileOutputStream(pictureFile);
-//                fos.write(data);
-                int angleToRotate = getCameraDisplayOrientation(CameraActivity.getInstance, CAMERA_FACING);
-                Bitmap orignalImage = BitmapFactory.decodeByteArray(data, 0, data.length);
-                Bitmap resultImage = rotateBitmap(orignalImage, angleToRotate);
-                if(CAMERA_FACING == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                    resultImage = invertBitmap(resultImage);
-                }
-                resultImage.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+                fos.write(data);
                 fos.flush();
                 fos.close();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+//            try {
+//                FileOutputStream fos = new FileOutputStream(pictureFile);
+//                fos.write(data);
+//                int angleToRotate = getCameraDisplayOrientation(CameraActivity.getInstance, CAMERA_FACING);
+//                Bitmap orignalImage = BitmapFactory.decodeByteArray(data, 0, data.length);
+//                Bitmap resultImage = rotateBitmap(orignalImage, angleToRotate);
+//                if(CAMERA_FACING == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+//                    resultImage = invertBitmap(resultImage);
+//                }
+//                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//                resultImage.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+//                byte[] imageBytes = baos.toByteArray();
+//                String encodedImage = Base64.encodeToString(imageBytes, Base64.DEFAULT);
+//                uploadImageToServer(encodedImage);
+//                resultImage.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+//                fos.flush();
+//                fos.close();
 
 //                Uri tempImgURI = getOutputMediaFileUri(MEDIA_TYPE_IMAGE);
-                String tempImgURI = pictureFile.getPath();
-                Log.i("check tempimguri",tempImgURI+"");
-                SAVE_FILE=false;
+            String tempImgURI = pictureFile.getPath();
+            Log.i("check tempimguri", tempImgURI + "");
+            SAVE_FILE = false;
+
+//                uploadImageToServer(resultImage);
+//
+//                uploadImageToServer(tempImgURI);
+
+//                uploadImageToServer(resultImage);
+
+
 //                changeDisplay_PICUTURED_STATE(tempImgURI);
 
-                if (IDCard_Recognizer()) {
-                    changeViewSetting(IDCARD_CAPTURED_RESULT_VIEW);
-                } else {
-                    changeViewSetting(IDCARD_CAPTURED_ERR_VIEW);
-                }
-            } catch (FileNotFoundException e) {
-                Log.d(TAG, "File not found: " + e.getMessage());
-            } catch (IOException e) {
-                Log.d(TAG, "Error accessing file: " + e.getMessage());
+            if (IDCard_Recognizer()) {
+                changeViewSetting(IDCARD_CAPTURED_RESULT_VIEW);
+            } else {
+                changeViewSetting(IDCARD_CAPTURED_ERR_VIEW);
             }
+//            } catch (FileNotFoundException e) {
+//                Log.d(TAG, "File not found: " + e.getMessage());
+//            } catch (IOException e) {
+//                Log.d(TAG, "Error accessing file: " + e.getMessage());
+//            }
 
 //            ExifInterface exifInterface = null;
 //            try {
@@ -243,7 +268,7 @@ public class CameraActivity extends AppCompatActivity {
         // Todo : 카메라 화질관련해서 아직 미완임
         // 카메라 객체를 cameraPreview에서 먼저 정의해야 함으로 setContentView 보다 먼저 정의한다.
         getInstance = this;
-        switch (VIEW_TYPE){
+        switch (VIEW_TYPE) {
             case VIEW_TYPE_IDCARD: // id card
                 CAMERA_FACING = Camera.CameraInfo.CAMERA_FACING_BACK;
                 mCamera = Camera.open(CAMERA_FACING);
@@ -271,7 +296,7 @@ public class CameraActivity extends AppCompatActivity {
         });
     }
 
-    private void uploadImageToServer(String imagePath) {
+    private void uploadImageToServer(byte[] data) {
         submitBtn.setEnabled(false);
 
         Retrofit retrofit = NetworkClient.getRetrofitClient(this);
@@ -279,18 +304,21 @@ public class CameraActivity extends AppCompatActivity {
         NetworkClient.UploadAPIs uploadAPIs = retrofit.create(NetworkClient.UploadAPIs.class);
 
         // 파일 경로 사용해서 파일 오브젝트 생성
-        File file = new File(imagePath);
+//        File file = new File(imagePath);
 
         // 미디어타입 '이미지'인 리퀘스트 바디 생성
-        RequestBody fileReqBody = RequestBody.create(MediaType.parse("image/*"), file);
+        RequestBody fileReqBody = RequestBody.create(MediaType.parse("image/*"), data);
 
         // 리퀘스트 바디와 파일명, part명을 사용해서 멀티파트바디 생성
-        MultipartBody.Part part = MultipartBody.Part.createFormData("userfile", file.getName(), fileReqBody);
+        MultipartBody.Part part = MultipartBody.Part.createFormData("userfile", "picture", fileReqBody);
 
         // 텍스트 설명과 텍스트 미디어 타입을 사용해서 리퀘스트 바디 생성
         RequestBody description = RequestBody.create(MediaType.parse("multipart/form-data"), "android");
 
-        Call call = uploadAPIs.uploadImage(part, description);
+        // 앵글 값 전달
+        RequestBody angle = RequestBody.create(MediaType.parse("multipart/form-data"), Integer.toString(getCameraDisplayOrientation(CameraActivity.getInstance, CAMERA_FACING)));
+
+        Call call = uploadAPIs.uploadImage(part, description, angle);
 
         call.enqueue(new Callback() {
             @Override
@@ -318,7 +346,7 @@ public class CameraActivity extends AppCompatActivity {
         });
     }
 
-    private void delete_file(String uri){
+    private void delete_file(String uri) {
         File fdelete = new File(uri);
         if (fdelete.exists()) {
             if (fdelete.delete()) {
@@ -329,12 +357,12 @@ public class CameraActivity extends AppCompatActivity {
         }
     }
 
-    private boolean IDCard_Recognizer(){
+    private boolean IDCard_Recognizer() {
         // Todo : 신분증 사진이 제대로 찍혔는지 확인
         return true;
     }
 
-    private void viewSetting_allDisappear(){
+    private void viewSetting_allDisappear() {
         thumbnail.setVisibility(View.GONE);
         shotBtn.setVisibility(View.GONE);
         cleaner_uniform.setVisibility(View.GONE);
@@ -344,8 +372,8 @@ public class CameraActivity extends AppCompatActivity {
     private void changeViewSetting(int viewName) {
         viewSetting_allDisappear();
 
-        switch (viewName){
-            case IDCARD_EXAMPLE_VIEW :
+        switch (viewName) {
+            case IDCARD_EXAMPLE_VIEW:
 
                 break;
             case IDCARD_CAMERA_VIEW:
@@ -356,26 +384,26 @@ public class CameraActivity extends AppCompatActivity {
             case IDCARD_CAPTURED_ERR_VIEW:
 
                 break;
-            case IDCARD_CAPTURED_RESULT_VIEW :
+            case IDCARD_CAPTURED_RESULT_VIEW:
                 // 카메라 프리뷰를 멈춤
                 cameraPreview.surfaceDestroyed(holder);
                 thumbnail.setVisibility(View.VISIBLE);
                 resultBtnContainer.setVisibility(View.VISIBLE);
-                camera_notice.setText("정보를 확인하세요 \n"+"다른 경우 승인이 안돼요");
+                camera_notice.setText("정보를 확인하세요 \n" + "다른 경우 승인이 안돼요");
                 break;
-            case PROFILE_EXAMPLE_VIEW :
+            case PROFILE_EXAMPLE_VIEW:
 
                 break;
             case PROFILE_CAMERA_VIEW:
                 shotBtn.setText("사진찍기");
                 shotBtn.setVisibility(View.VISIBLE);
                 camera_notice.setText("목과 턱을 선에 맞춰 찍어주세요");
-                cleaner_uniform.setVisibility(View.VISIBLE);
+//                cleaner_uniform.setVisibility(View.VISIBLE);
                 break;
             case PROFILE_CAPTURED_ERR_VIEW:
 
                 break;
-            case PROFILE_CAPTURED_RESULT_VIEW :
+            case PROFILE_CAPTURED_RESULT_VIEW:
 
                 break;
         }
@@ -384,53 +412,69 @@ public class CameraActivity extends AppCompatActivity {
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
-        Log.i("생명주기확인","onWindowFocusChanged");
+        Log.i("생명주기확인", "onWindowFocusChanged");
 
         // preview의 width size 얻기
-        float overlaySide_px = 16 * getResources().getDisplayMetrics().density; // dp를 px로
+        int overlaySide_px = (int) (16 * getResources().getDisplayMetrics().density); // dp를 px로
+        Log.i("layout_check", "overlaySide_px: " + overlaySide_px);
         int previewWidth = cameraPreview.getMeasuredWidth();
-        previewWidth -= (overlaySide_px*2);
+        previewWidth -= (overlaySide_px * 2);
+        Log.i("layout_check", "previewWidth: " + previewWidth);
 
         // Todo : 상단바 / 네비게이터의 높이는 고려하지 않았음
         // screen의 height size 얻기
         Point point = new Point();
-        this.getWindowManager().getDefaultDisplay().getSize(point);
-        int screenHeight = point.y;
+//        this.getWindowManager().getDefaultDisplay().getSize(point);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            this.getWindowManager().getDefaultDisplay().getRealSize(point);
+        } else this.getWindowManager().getDefaultDisplay().getSize(point);
 
-        int previewHeight;
-        int overlayHeight;
-        switch (VIEW_TYPE){
+        int screenHeight = point.y;
+        Log.i("layout_check", "screenHeight: " + screenHeight);
+
+        switch (VIEW_TYPE) {
             case VIEW_TYPE_IDCARD:
-                // id card 탑, 바텀 오버레이 설정
-                previewHeight = (int)(previewWidth * 0.64);
-                overlayHeight = screenHeight - previewHeight;
-                overlayParams_top.height = overlayHeight/11*3;
-                overlayParams_bottom.height = overlayHeight/11*8;
+//                // id card 탑, 바텀 오버레이 설정
+                overlayParams_previewArea.height = (int) (previewWidth * 0.64);
+                overlayParams_top.height = (int) (screenHeight * 0.15);
+                previewArea.setLayoutParams(overlayParams_previewArea);
                 overlay_top.setLayoutParams(overlayParams_top);
-                overlay_bottom.setLayoutParams(overlayParams_bottom);
+//                previewHeight = (int)(previewWidth * 0.64);
+//                overlayHeight = screenHeight - previewHeight;
+//                overlayParams_top.height = overlayHeight/11*3;
+//                overlayParams_bottom.height = overlayHeight/11*8;
+//                overlay_top.setLayoutParams(overlayParams_top);
+//                overlay_bottom.setLayoutParams(overlayParams_bottom);
+//                Log.i("layout_check","overlayHeight: " + overlayHeight);
                 break;
             case VIEW_TYPE_PROFILE:
                 // frofile 탑, 바텀 오버레이 설정
-                previewHeight = (int)(previewWidth * 1.15);
-                overlayHeight = screenHeight - previewHeight;
-                overlayParams_top.height = overlayHeight/13*6;
-                overlayParams_bottom.height = overlayHeight/13*7;
+                overlayParams_previewArea.height = previewWidth;
+                overlayParams_top.height = (int) (screenHeight * 0.15);
+                previewArea.setLayoutParams(overlayParams_previewArea);
                 overlay_top.setLayoutParams(overlayParams_top);
-                overlay_bottom.setLayoutParams(overlayParams_bottom);
                 break;
         }
+        Log.i("layout_check", "previewHeight: " + previewArea.getHeight());
     }
 
-    public void onClick(View v){
-        switch (v.getId()){
+    public void onClick(View v) {
+        switch (v.getId()) {
             case R.id.retryBtn:
-                initCameraSetting();
-                cameraPreview_open();
-                takePicture();
-                changeViewSetting(IDCARD_CAMERA_VIEW);
+                if (VIEW_TYPE == VIEW_TYPE_IDCARD) {
+                    initCameraSetting();
+                    cameraPreview_open();
+                    takePicture();
+                    changeViewSetting(IDCARD_CAMERA_VIEW);
+                } else if (VIEW_TYPE == VIEW_TYPE_PROFILE) {
+                    initCameraSetting();
+                    cameraPreview_open();
+                    takePicture();
+                    changeViewSetting(PROFILE_CAMERA_VIEW);
+                }
                 break;
             case R.id.submitBtn:
-                uploadImageToServer();
+//                uploadImageToServer();
                 break;
             case R.id.camera_exit:
                 finish();
@@ -438,9 +482,9 @@ public class CameraActivity extends AppCompatActivity {
         }
     }
 
-    private void cameraPreview_open(){
+    private void cameraPreview_open() {
         cameraPreviewFrame.removeAllViews();
-        cameraPreview = new CameraPreview(this,CAMERA_FACING);
+        cameraPreview = new CameraPreview(this, CAMERA_FACING);
         Camera.Size previewSize = CameraPreview.getOptimalPreviewSize(mCamera.getParameters().getSupportedPreviewSizes());
 
         RelativeLayout.LayoutParams layoutPreviewParams = (RelativeLayout.LayoutParams) cameraPreviewFrame.getLayoutParams();
@@ -546,7 +590,7 @@ public class CameraActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        Log.i("CameraPreview_Log",mCamera.toString());
+        Log.i("CameraPreview_Log", mCamera.toString());
         if (mCamera == null) {
             initCameraSetting();
             cameraPreview_open();

@@ -87,10 +87,17 @@
         android:background="#ffffff" />
 
     <RelativeLayout
-        android:id="@+id/overlay_bottom"
+        android:id="@+id/previewArea"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
+        android:layout_centerInParent="true"
+        />
+
+    <RelativeLayout
+        android:id="@+id/overlay_bottom"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/previewArea"
         android:background="#FFFFFF"
         android:paddingLeft="10dp"
         android:paddingRight="10dp"

@@ -1,12 +1,6 @@
 package com.example.guideline_on_camera;
 
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
 import android.Manifest;
-import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -18,6 +12,11 @@ import android.util.Log;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
+
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.example.guideline_on_camera.network.NetworkClient;
 
@@ -94,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
 
         // 텍스트 설명과 텍스트 미디어 타입을 사용해서 리퀘스트 바디 생성
         RequestBody description = RequestBody.create(MediaType.parse("multipart/form-data"),"android");
-        Call call = uploadAPIs.uploadImage(part, description);
+        Call call = uploadAPIs.uploadImage(part, description, null);
         
         call.enqueue(new Callback() {
             @Override

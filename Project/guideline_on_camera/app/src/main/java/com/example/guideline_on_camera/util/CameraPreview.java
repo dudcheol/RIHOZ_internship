@@ -2,14 +2,10 @@ package com.example.guideline_on_camera.util;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.res.Configuration;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.graphics.Point;
 import android.hardware.Camera;
-import android.nfc.Tag;
-import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Display;
 import android.view.Surface;
@@ -55,18 +51,29 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
                 mCamera = Camera.open();
             }
             camParams = mCamera.getParameters();
+
+            // 그냥 확인용
+            for(Camera.Size size : camParams.getSupportedPictureSizes()){
+                Log.d("CameraPreview_Log", "    supported picture size: " + size.width + ", " + size.height);
+            }
+
+            // 사용중인 기기 화면에 맞는 프리뷰 사이즈 설정
             previewSize = getOptimalPreviewSize(camParams.getSupportedPreviewSizes());
 
             // preview size와 가장 근접한 picture size를 찾고 그것을 picturesize로 설정한다.
-            Camera.Size pictureSize = camParams.getSupportedPictureSizes().get(0);
-            Log.i("bestpictureSize:", pictureSize.width + " <- width / height -> " + pictureSize.height + "");
+            double mRatio = (double)previewSize.width / (double)previewSize.height;
+            Camera.Size pictureSize = previewSize;
             for (Camera.Size size : camParams.getSupportedPictureSizes()) {
-                if (size.width == previewSize.width && size.height == previewSize.height) {
+                if (size.width <= previewSize.width && size.height <= previewSize.height ) {
+                    //&& mRatio == (double)size.width/(double)size.height
+                    if(size.height > 720) continue;
                     pictureSize = size;
                     break;
                 }
             }
+//            camParams.setPictureSize(pictureSize.width, pictureSize.height);
             camParams.setPictureSize(pictureSize.width, pictureSize.height);
+            mCamera.setParameters(camParams);
             Log.i(TAG, "picturesize width: "+pictureSize.width + "");
             Log.i(TAG, "picturesize height: "+pictureSize.height + "");
 
@@ -115,6 +122,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             Log.i(TAG, "PreviewSizes height: " + previewSize.height + "");
 
             setCameraDisplayOrientation(CameraActivity.getInstance, CAMERA_FACING, mCamera);
+
             mCamera.setPreviewDisplay(surfaceHolder);
             mCamera.startPreview();
 
