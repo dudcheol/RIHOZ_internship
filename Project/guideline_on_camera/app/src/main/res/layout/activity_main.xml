@@ -38,7 +38,7 @@
             android:id="@+id/sendImg"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="upload image"
+            android:text="foreign camera"
             android:layout_below="@id/go_to_camera"
             android:layout_centerHorizontal="true"/>
     </RelativeLayout>

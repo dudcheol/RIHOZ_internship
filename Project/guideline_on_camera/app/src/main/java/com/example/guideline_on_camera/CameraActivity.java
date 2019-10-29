@@ -6,13 +6,15 @@ import android.content.pm.PackageManager;
 import android.graphics.Point;
 import android.hardware.Camera;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -23,16 +25,15 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.afollestad.materialdialogs.MaterialDialog;
+import com.example.guideline_on_camera.VO.GetResponse;
 import com.example.guideline_on_camera.network.NetworkClient;
 import com.example.guideline_on_camera.util.CameraPreview;
+import com.example.guideline_on_camera.util.ProgressMaterialDialog;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Objects;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -42,6 +43,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 
+import static com.example.guideline_on_camera.util.CameraPreview.deviceInfo;
 import static com.example.guideline_on_camera.util.CameraPreview.getCameraDisplayOrientation;
 
 public class CameraActivity extends AppCompatActivity {
@@ -61,28 +63,34 @@ public class CameraActivity extends AppCompatActivity {
     private final int CAMERA_STATE_PREVIEW = 3;
 
     private Button shotBtn, retryBtn, submitBtn;
-    private ImageView thumbnail, cleaner_uniform;
-    private RelativeLayout overlay_top, overlay_bottom, previewArea;
+    private ImageView cleaner_uniform;
+    private RelativeLayout previewArea, overlay_top, overlay_left, totalLayout;
     private TextView camera_notice;
     private RelativeLayout.LayoutParams overlayParams_top, overlayParams_bottom, overlayParams_previewArea;
     private LinearLayout resultBtnContainer;
     private FrameLayout cameraPreviewFrame;
 
-    private boolean SAVE_FILE = false;
     private int VIEW_TYPE;
-    public final int VIEW_TYPE_IDCARD = 1;
-    public final int VIEW_TYPE_PROFILE = 2;
+    public final int VIEW_TYPE_IDCARD = 1000;
+    public final int VIEW_TYPE_PROFILE = 2000;
+    public final int VIEW_TYPE_FOREIGNCARD = 3000;
 
     //view : IDCARD
-    private final int IDCARD_EXAMPLE_VIEW = 1000;
     private final int IDCARD_CAMERA_VIEW = 1001;
     private final int IDCARD_CAPTURED_ERR_VIEW = 1002;
-    private final int IDCARD_CAPTURED_RESULT_VIEW = 1003;
+    private final int IDCARD_CAPTURED_TIMEOUT_VIEW = 1003;
+
     //view : PROFILE
-    private final int PROFILE_EXAMPLE_VIEW = 2000;
     private final int PROFILE_CAMERA_VIEW = 2001;
     private final int PROFILE_CAPTURED_ERR_VIEW = 2002;
-    private final int PROFILE_CAPTURED_RESULT_VIEW = 2003;
+    private final int PROFILE_CAPTURED_TIMEOUT_VIEW = 2003;
+
+    //view : FOREIGNCARD
+    private final int FOREIGNCARD_CAMERA_VIEW = 3001;
+    private final int FOREIGNCARD_CAPTURED_ERR_VIEW = 3002;
+    private final int FOREIGNCARD_CAPTURED_TIMEOUT_VIEW = 3003;
+
+    MaterialDialog progressDialog = null;
 
     // Todo 1 : 레트로핏으로 넘길때 url말고 바로 filestream 자체를 보낼 수 있는 방법을 생각
     // Todo 2 : 찍은 사진의 특정 영역의 rgb값을 빼와서 밝기체크 (?)
@@ -124,26 +132,32 @@ public class CameraActivity extends AppCompatActivity {
         shotBtn = findViewById(R.id.shotBtn);
         retryBtn = findViewById(R.id.retryBtn);
         submitBtn = findViewById(R.id.submitBtn);
-        thumbnail = findViewById(R.id.thumbnail);
         cleaner_uniform = findViewById(R.id.cleaner_uniform);
         camera_notice = findViewById(R.id.camera_notice);
         overlay_top = findViewById(R.id.overlay_top);
-        overlay_bottom = findViewById(R.id.overlay_bottom);
-        overlayParams_top = (RelativeLayout.LayoutParams) overlay_top.getLayoutParams();
-        overlayParams_bottom = (RelativeLayout.LayoutParams) overlay_bottom.getLayoutParams();
+//        overlay_bottom = findViewById(R.id.overlay_bottom);
+//        overlayParams_top = (RelativeLayout.LayoutParams) overlay_top.getLayoutParams();
+//        overlayParams_bottom = (RelativeLayout.LayoutParams) overlay_bottom.getLayoutParams();
         previewArea = findViewById(R.id.previewArea);
         overlayParams_previewArea = (RelativeLayout.LayoutParams) previewArea.getLayoutParams();
         resultBtnContainer = findViewById(R.id.resultBtnContainer);
         cameraPreviewFrame = findViewById(R.id.cameraPreviewFrame);
+        overlay_left = findViewById(R.id.overlay_left);
+        totalLayout = findViewById(R.id.totalLayout);
 
 
         cameraPreview_open();
 
-        if (VIEW_TYPE == VIEW_TYPE_IDCARD) {
-            changeViewSetting(IDCARD_CAMERA_VIEW);
-        }
-        if (VIEW_TYPE == VIEW_TYPE_PROFILE) {
-            changeViewSetting(PROFILE_CAMERA_VIEW);
+        switch (VIEW_TYPE){
+            case VIEW_TYPE_IDCARD:
+                changeViewSetting(IDCARD_CAMERA_VIEW);
+                break;
+            case VIEW_TYPE_PROFILE:
+                changeViewSetting(PROFILE_CAMERA_VIEW);
+                break;
+            case VIEW_TYPE_FOREIGNCARD:
+                changeViewSetting(FOREIGNCARD_CAMERA_VIEW);
+                break;
         }
     }
 
@@ -151,76 +165,32 @@ public class CameraActivity extends AppCompatActivity {
     private Camera.PictureCallback mPicture = new Camera.PictureCallback() {
         @Override
         public void onPictureTaken(byte[] data, Camera camera) {
-            File pictureFile = getOutputMediaFile(MEDIA_TYPE_IMAGE);
-            if (pictureFile == null) {
-                Log.d(TAG, "Error creating media file, check storage permissions");
-                return;
-            }
-
-            Log.i("file_name", pictureFile.getPath());
-            uploadImageToServer(data);
-
-            try {
-                FileOutputStream fos = new FileOutputStream(pictureFile);
-                fos.write(data);
-                fos.flush();
-                fos.close();
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            // 사진 폰에 저장하려면 이 코드 주석해제
+//            File pictureFile = getOutputMediaFile(MEDIA_TYPE_IMAGE);
+//            if (pictureFile == null) {
+//                Log.d(TAG, "Error creating media file, check storage permissions");
+//                return;
+//            }
 //            try {
 //                FileOutputStream fos = new FileOutputStream(pictureFile);
 //                fos.write(data);
-//                int angleToRotate = getCameraDisplayOrientation(CameraActivity.getInstance, CAMERA_FACING);
-//                Bitmap orignalImage = BitmapFactory.decodeByteArray(data, 0, data.length);
-//                Bitmap resultImage = rotateBitmap(orignalImage, angleToRotate);
-//                if(CAMERA_FACING == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-//                    resultImage = invertBitmap(resultImage);
-//                }
-//                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-//                resultImage.compress(Bitmap.CompressFormat.JPEG, 100, baos);
-//                byte[] imageBytes = baos.toByteArray();
-//                String encodedImage = Base64.encodeToString(imageBytes, Base64.DEFAULT);
-//                uploadImageToServer(encodedImage);
-//                resultImage.compress(Bitmap.CompressFormat.JPEG, 100, fos);
 //                fos.flush();
 //                fos.close();
-
-//                Uri tempImgURI = getOutputMediaFileUri(MEDIA_TYPE_IMAGE);
-            String tempImgURI = pictureFile.getPath();
-            Log.i("check tempimguri", tempImgURI + "");
-            SAVE_FILE = false;
-
-//                uploadImageToServer(resultImage);
-//
-//                uploadImageToServer(tempImgURI);
-
-//                uploadImageToServer(resultImage);
-
-
-//                changeDisplay_PICUTURED_STATE(tempImgURI);
-
-            if (IDCard_Recognizer()) {
-                changeViewSetting(IDCARD_CAPTURED_RESULT_VIEW);
-            } else {
-                changeViewSetting(IDCARD_CAPTURED_ERR_VIEW);
-            }
 //            } catch (FileNotFoundException e) {
-//                Log.d(TAG, "File not found: " + e.getMessage());
-//            } catch (IOException e) {
-//                Log.d(TAG, "Error accessing file: " + e.getMessage());
-//            }
-
-//            ExifInterface exifInterface = null;
-//            try {
-//                exifInterface = new ExifInterface(tempImgURI.getPath());
+//                e.printStackTrace();
 //            } catch (IOException e) {
 //                e.printStackTrace();
 //            }
-//            int orientation = exifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
-//            Log.i("getexif-ori", String.valueOf(orientation));
+            showDialog(true, "사진 저장중입니다. 기다려주세요.");
+            switch (VIEW_TYPE){
+                case VIEW_TYPE_IDCARD:
+                    uploadImageToServer_IDCard(data);
+                    break;
+                case VIEW_TYPE_PROFILE:
+                    uploadImageToServer_Profile(data);
+                    break;
+            }
+            cameraPreviewFrame.removeAllViews();
         }
     };
 
@@ -270,6 +240,7 @@ public class CameraActivity extends AppCompatActivity {
         getInstance = this;
         switch (VIEW_TYPE) {
             case VIEW_TYPE_IDCARD: // id card
+            case VIEW_TYPE_FOREIGNCARD: // profile
                 CAMERA_FACING = Camera.CameraInfo.CAMERA_FACING_BACK;
                 mCamera = Camera.open(CAMERA_FACING);
                 break;
@@ -296,65 +267,141 @@ public class CameraActivity extends AppCompatActivity {
         });
     }
 
-    private void uploadImageToServer(byte[] data) {
-        submitBtn.setEnabled(false);
-
+    private void uploadImageToServer_Profile(byte[] data) {
         Retrofit retrofit = NetworkClient.getRetrofitClient(this);
-
-        NetworkClient.UploadAPIs uploadAPIs = retrofit.create(NetworkClient.UploadAPIs.class);
-
-        // 파일 경로 사용해서 파일 오브젝트 생성
-//        File file = new File(imagePath);
-
+        NetworkClient.UploadProfile uploadProfile = retrofit.create(NetworkClient.UploadProfile.class);
         // 미디어타입 '이미지'인 리퀘스트 바디 생성
         RequestBody fileReqBody = RequestBody.create(MediaType.parse("image/*"), data);
-
         // 리퀘스트 바디와 파일명, part명을 사용해서 멀티파트바디 생성
         MultipartBody.Part part = MultipartBody.Part.createFormData("userfile", "picture", fileReqBody);
-
         // 텍스트 설명과 텍스트 미디어 타입을 사용해서 리퀘스트 바디 생성
         RequestBody description = RequestBody.create(MediaType.parse("multipart/form-data"), "android");
-
         // 앵글 값 전달
         RequestBody angle = RequestBody.create(MediaType.parse("multipart/form-data"), Integer.toString(getCameraDisplayOrientation(CameraActivity.getInstance, CAMERA_FACING)));
+        // top,left 값 전달
+        RequestBody left = RequestBody.create(MediaType.parse("multipart/form-data"), Integer.toString(submitCuttingInfo().x));
+        RequestBody top = RequestBody.create(MediaType.parse("multipart/form-data"), Integer.toString(submitCuttingInfo().y));
 
-        Call call = uploadAPIs.uploadImage(part, description, angle);
-
-        call.enqueue(new Callback() {
+        Call call = uploadProfile.uploadImage(part, description, angle, top, left);
+        call.enqueue(new Callback<GetResponse>() {
             @Override
-            public void onResponse(Call call, Response response) {
+            public void onResponse(Call<GetResponse> call, Response<GetResponse> response) {
                 if (response.isSuccessful()) {
-                    Log.i("정민님의 응답", response.message());
-                    Log.i("정민님의 응답", response.toString());
-                    Toast.makeText(getApplicationContext(), "Response : 업로드 성공", Toast.LENGTH_SHORT).show();
-                    Log.i("response_upload_fail", response.message());
-                    submitBtn.setEnabled(true);
+                    GetResponse res = response.body();
+                    if (res.isResponse()) {
+                        // 일단 아무것도 안함
+                        changeViewSetting(PROFILE_CAPTURED_ERR_VIEW);
+                        Toast.makeText(getInstance, "업로드 성공!!!", Toast.LENGTH_SHORT).show();
+                    } else {
+                        changeViewSetting(PROFILE_CAPTURED_ERR_VIEW);
+                    }
+                    Log.i("response_to_server", res.isResponse() + "");
+                    showDialog(false, null);
                 } else {
-                    Toast.makeText(getApplicationContext(), "Error Response : " + response.message(), Toast.LENGTH_SHORT).show();
+                    // Todo : 여기 에러의 경우는 어떻게 처리?
                     Log.e("response_upload_fail", response.message());
                     Log.e("response_upload_fail", response.errorBody().toString());
-                    submitBtn.setEnabled(true);
+                    showDialog(false, null);
                 }
             }
-
             @Override
             public void onFailure(Call call, Throwable t) {
                 Toast.makeText(getApplicationContext(), "Fail : 업로드 실패", Toast.LENGTH_SHORT).show();
-                Log.e("Fail", Objects.requireNonNull(t.getMessage()));
-                submitBtn.setEnabled(true);
+                changeViewSetting(PROFILE_CAPTURED_TIMEOUT_VIEW);
+                showDialog(false, null);
             }
         });
     }
 
-    private void delete_file(String uri) {
-        File fdelete = new File(uri);
-        if (fdelete.exists()) {
-            if (fdelete.delete()) {
-                System.out.println("file Deleted :" + uri);
-            } else {
-                System.out.println("file not Deleted :" + uri);
+    private void uploadImageToServer_IDCard(byte[] data){
+        Retrofit retrofit = NetworkClient.getRetrofitClient(this);
+        NetworkClient.UploadIDCard uploadProfile = retrofit.create(NetworkClient.UploadIDCard.class);
+        // 미디어타입 '이미지'인 리퀘스트 바디 생성
+        RequestBody fileReqBody = RequestBody.create(MediaType.parse("image/*"), data);
+        // 리퀘스트 바디와 파일명, part명을 사용해서 멀티파트바디 생성
+        MultipartBody.Part part = MultipartBody.Part.createFormData("idCard", "picture", fileReqBody);
+        // 텍스트 설명과 텍스트 미디어 타입을 사용해서 리퀘스트 바디 생성
+        RequestBody description = RequestBody.create(MediaType.parse("multipart/form-data"), "android");
+        // 앵글 값 전달
+        RequestBody angle = RequestBody.create(MediaType.parse("multipart/form-data"), Integer.toString(getCameraDisplayOrientation(CameraActivity.getInstance, CAMERA_FACING)));
+        // top,left 값 전달
+        RequestBody left = RequestBody.create(MediaType.parse("multipart/form-data"), Integer.toString(submitCuttingInfo().x));
+        RequestBody top = RequestBody.create(MediaType.parse("multipart/form-data"), Integer.toString(submitCuttingInfo().y));
+
+        Call call = uploadProfile.uploadImage(part, description, angle, top, left);
+        call.enqueue(new Callback<GetResponse>() {
+            @Override
+            public void onResponse(Call<GetResponse> call, Response<GetResponse> response) {
+                if (response.isSuccessful()) {
+                    GetResponse res = response.body();
+                    if (res.isResponse()) {
+                        if(res.getType().equals("error")){
+                            changeViewSetting(IDCARD_CAPTURED_ERR_VIEW);
+                        }
+                        // 일단 아무것도 안함
+                        Toast.makeText(getInstance, res.getName()+res.getRegistrationNumFront()+res.getRegistrationNumBack()+res.getType(), Toast.LENGTH_SHORT).show();
+                        Log.i("response_to_server",res.getName()+res.getRegistrationNumBack()+res.getRegistrationNumFront()+res.getType());
+                    } else {
+                        Toast.makeText(getInstance, "업로드 실패!!!", Toast.LENGTH_SHORT).show();
+                    }
+                    Log.i("response_to_server", res.isResponse() + "");
+                    showDialog(false, null);
+                } else {
+                    // Todo : 여기 에러의 경우는 어떻게 처리?
+                    Log.e("response_upload_fail", response.message());
+                    Log.e("response_upload_fail", response.errorBody().toString());
+                    showDialog(false, null);
+                }
+            }
+            @Override
+            public void onFailure(Call call, Throwable t) {
+                Toast.makeText(getApplicationContext(), "Fail : 업로드 실패", Toast.LENGTH_SHORT).show();
+                changeViewSetting(PROFILE_CAPTURED_TIMEOUT_VIEW);
+                showDialog(false, null);
+            }
+        });
+    }
+
+    private void showDialog(boolean state, String text) {
+        if (state && text != null) {
+            ProgressMaterialDialog.Builder dialog = null;
+            if (progressDialog == null) {
+                dialog = new ProgressMaterialDialog.Builder(getInstance);
+                progressDialog = dialog.content(text).show();
+            }
+        } else {
+            if (progressDialog != null) {
+                progressDialog.dismiss();
+                progressDialog=null;
             }
         }
+    }
+
+    private Point submitCuttingInfo() {
+//        Point point = getScreenSize();
+        int previewSapce = (totalLayout.getHeight() - cameraPreviewFrame.getHeight()) / 2;
+//        int previewSapce = (point.y - cameraPreviewFrame.getHeight())/2;
+        double ratio = (double) deviceInfo.getPictureSize().width / (double) deviceInfo.getPreviewSize().width;
+        Point result = new Point();
+        result.x = (int) (overlay_left.getWidth() * ratio);
+//        result.x = getDPtoPX(getApplicationContext(),16);
+//        result.y = (int)((overlay_top.getHeight() - previewSapce) * ratio);
+        result.y = (int) ((overlay_top.getHeight() - previewSapce) * ratio);
+
+
+        Log.i("submitCuttingInfo", "ratio : " + ratio);
+        Log.i("submitCuttingInfo", "deviceInfo.getPreviewSize().width : " + deviceInfo.getPreviewSize().width);
+        Log.i("submitCuttingInfo", "deviceInfo.getPreviewSize().height : " + deviceInfo.getPreviewSize().height);
+        Log.i("submitCuttingInfo", "cameraPreviewFrame.getHeight() : " + cameraPreviewFrame.getHeight());
+        Log.i("submitCuttingInfo", "totalLayout.getHeight() : " + totalLayout.getHeight());
+//        Log.i("submitCuttingInfo","screen height : "+point.y+" / screen width : "+point.x);
+        Log.i("submitCuttingInfo", "overlay_top : " + overlay_top.getHeight());
+        Log.i("submitCuttingInfo", "previewSapce : " + previewSapce);
+        Log.i("submitCuttingInfo", "previewsize : " + previewArea.getHeight() + " / " + previewArea.getWidth());
+        Log.i("submitCuttingInfo", "left : " + result.x);
+        Log.i("submitCuttingInfo", "top : " + result.y);
+
+        return result;
     }
 
     private boolean IDCard_Recognizer() {
@@ -363,7 +410,6 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void viewSetting_allDisappear() {
-        thumbnail.setVisibility(View.GONE);
         shotBtn.setVisibility(View.GONE);
         cleaner_uniform.setVisibility(View.GONE);
         resultBtnContainer.setVisibility(View.GONE);
@@ -373,38 +419,62 @@ public class CameraActivity extends AppCompatActivity {
         viewSetting_allDisappear();
 
         switch (viewName) {
-            case IDCARD_EXAMPLE_VIEW:
-
-                break;
             case IDCARD_CAMERA_VIEW:
                 shotBtn.setText("사진찍기");
                 shotBtn.setVisibility(View.VISIBLE);
-                camera_notice.setText("신분증 전체가 잘 보이게 촬영해주세요");
+                camera_notice.setText("글자가 잘 보이게 찍어주세요");
                 break;
             case IDCARD_CAPTURED_ERR_VIEW:
+                cameraReOpen();
+                shotBtn.setText("사진찍기");
+                shotBtn.setVisibility(View.VISIBLE);
+                camera_notice.setText("인식이 안돼요! 다시 찍어주세요");
+                break;
+            case IDCARD_CAPTURED_TIMEOUT_VIEW:
+                cameraReOpen();
+                shotBtn.setText("사진찍기");
+                shotBtn.setVisibility(View.VISIBLE);
+                // 문구 바꾸는거 윤지님이 알려줄 예정
+                camera_notice.setText("인식이 안돼요! 다시 찍어주세요");
+                break;
 
-                break;
-            case IDCARD_CAPTURED_RESULT_VIEW:
-                // 카메라 프리뷰를 멈춤
-                cameraPreview.surfaceDestroyed(holder);
-                thumbnail.setVisibility(View.VISIBLE);
-                resultBtnContainer.setVisibility(View.VISIBLE);
-                camera_notice.setText("정보를 확인하세요 \n" + "다른 경우 승인이 안돼요");
-                break;
-            case PROFILE_EXAMPLE_VIEW:
-
-                break;
             case PROFILE_CAMERA_VIEW:
                 shotBtn.setText("사진찍기");
                 shotBtn.setVisibility(View.VISIBLE);
                 camera_notice.setText("목과 턱을 선에 맞춰 찍어주세요");
-//                cleaner_uniform.setVisibility(View.VISIBLE);
+                cleaner_uniform.setVisibility(View.VISIBLE);
                 break;
             case PROFILE_CAPTURED_ERR_VIEW:
-
+                cameraReOpen();
+                shotBtn.setText("사진찍기");
+                shotBtn.setVisibility(View.VISIBLE);
+                camera_notice.setText("사진이 흔들렸어요! 다시 찍어주세요");
                 break;
-            case PROFILE_CAPTURED_RESULT_VIEW:
+            case PROFILE_CAPTURED_TIMEOUT_VIEW:
+                cameraReOpen();
+                shotBtn.setText("사진찍기");
+                shotBtn.setVisibility(View.VISIBLE);
+                // 문구 바꾸는거 윤지님이 알려줄 예정
+                camera_notice.setText("사진이 흔들렸어요! 다시 찍어주세요");
+                break;
 
+            case FOREIGNCARD_CAMERA_VIEW:
+                shotBtn.setText("사진찍기");
+                shotBtn.setVisibility(View.VISIBLE);
+                camera_notice.setText("글자가 잘 보이게 찍어주세요");
+                break;
+            case FOREIGNCARD_CAPTURED_ERR_VIEW:
+                cameraReOpen();
+                shotBtn.setText("사진찍기");
+                shotBtn.setVisibility(View.VISIBLE);
+                camera_notice.setText("인식이 안돼요! 다시 찍어주세요");
+                break;
+            case FOREIGNCARD_CAPTURED_TIMEOUT_VIEW:
+                cameraReOpen();
+                shotBtn.setText("사진찍기");
+                shotBtn.setVisibility(View.VISIBLE);
+                // 문구 바꾸는거 윤지님이 알려줄 예정
+                camera_notice.setText("인식이 안돼요! 다시 찍어주세요");
                 break;
         }
     }
@@ -415,61 +485,63 @@ public class CameraActivity extends AppCompatActivity {
         Log.i("생명주기확인", "onWindowFocusChanged");
 
         // preview의 width size 얻기
-        int overlaySide_px = (int) (16 * getResources().getDisplayMetrics().density); // dp를 px로
+        int overlaySide_px = getDPtoPX(getApplicationContext(), 16); // dp를 px로
         Log.i("layout_check", "overlaySide_px: " + overlaySide_px);
-        int previewWidth = cameraPreview.getMeasuredWidth();
-        previewWidth -= (overlaySide_px * 2);
-        Log.i("layout_check", "previewWidth: " + previewWidth);
+//        int previewWidth = cameraPreview.getMeasuredWidth();
+//        previewWidth -= (overlaySide_px * 2);
+//        Log.i("layout_check", "previewWidth: " + previewWidth);
 
         // Todo : 상단바 / 네비게이터의 높이는 고려하지 않았음
         // screen의 height size 얻기
-        Point point = new Point();
-//        this.getWindowManager().getDefaultDisplay().getSize(point);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-            this.getWindowManager().getDefaultDisplay().getRealSize(point);
-        } else this.getWindowManager().getDefaultDisplay().getSize(point);
+        Point point = getScreenSize();
 
+        int screenWidth = point.x;
         int screenHeight = point.y;
+        screenWidth -= (overlaySide_px * 2);
         Log.i("layout_check", "screenHeight: " + screenHeight);
+        Log.i("layout_check", "screenWidth: " + screenWidth);
 
         switch (VIEW_TYPE) {
             case VIEW_TYPE_IDCARD:
 //                // id card 탑, 바텀 오버레이 설정
-                overlayParams_previewArea.height = (int) (previewWidth * 0.64);
-                overlayParams_top.height = (int) (screenHeight * 0.15);
+                overlayParams_previewArea.height = (int) (screenWidth * 0.64);
                 previewArea.setLayoutParams(overlayParams_previewArea);
-                overlay_top.setLayoutParams(overlayParams_top);
-//                previewHeight = (int)(previewWidth * 0.64);
-//                overlayHeight = screenHeight - previewHeight;
-//                overlayParams_top.height = overlayHeight/11*3;
-//                overlayParams_bottom.height = overlayHeight/11*8;
-//                overlay_top.setLayoutParams(overlayParams_top);
-//                overlay_bottom.setLayoutParams(overlayParams_bottom);
-//                Log.i("layout_check","overlayHeight: " + overlayHeight);
                 break;
             case VIEW_TYPE_PROFILE:
                 // frofile 탑, 바텀 오버레이 설정
-                overlayParams_previewArea.height = previewWidth;
-                overlayParams_top.height = (int) (screenHeight * 0.15);
+                overlayParams_previewArea.height = (int) (screenWidth * 1.15);
                 previewArea.setLayoutParams(overlayParams_previewArea);
-                overlay_top.setLayoutParams(overlayParams_top);
                 break;
         }
         Log.i("layout_check", "previewHeight: " + previewArea.getHeight());
+    }
+
+    public int getDPtoPX(Context context, int dp) {
+        DisplayMetrics metrics = new DisplayMetrics();
+        WindowManager mgr = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+        mgr.getDefaultDisplay().getMetrics(metrics);
+        Log.i("my_dpi", metrics.densityDpi + "");
+        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, context.getResources().getDisplayMetrics());
+    }
+
+    public Point getScreenSize() {
+        Point point = new Point();
+//        this.getWindowManager().getDefaultDisplay().getSize(point);
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+//            this.getWindowManager().getDefaultDisplay().getRealSize(point);
+//        } else this.getWindowManager().getDefaultDisplay().getSize(point);
+        this.getWindowManager().getDefaultDisplay().getSize(point);
+        return point;
     }
 
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.retryBtn:
                 if (VIEW_TYPE == VIEW_TYPE_IDCARD) {
-                    initCameraSetting();
-                    cameraPreview_open();
-                    takePicture();
+                    cameraReOpen();
                     changeViewSetting(IDCARD_CAMERA_VIEW);
                 } else if (VIEW_TYPE == VIEW_TYPE_PROFILE) {
-                    initCameraSetting();
-                    cameraPreview_open();
-                    takePicture();
+                    cameraReOpen();
                     changeViewSetting(PROFILE_CAMERA_VIEW);
                 }
                 break;
@@ -478,6 +550,13 @@ public class CameraActivity extends AppCompatActivity {
                 break;
             case R.id.camera_exit:
                 finish();
+                break;
+            case R.id.previewArea:
+                mCamera.autoFocus ((success, camera) -> {
+                    if(success){
+                        Toast.makeText(getInstance, "focus 잡음", Toast.LENGTH_SHORT).show();
+                    }
+                });
                 break;
         }
     }
@@ -498,92 +577,11 @@ public class CameraActivity extends AppCompatActivity {
         cameraPreviewFrame.addView(cameraPreview);
     }
 
-    //    private void changeDisplay_PICUTURED_STATE(String uri) {
-//        // 찍은 사진의 실제 경로를 구함
-////        String thumbnail_uri_real_path = changeUriForFileNameForm(uri);
-////        String thumbnail_uri_real_path = uri.getPath();
-//
-//        displaySetting_CAPTURED_STATE();
-//
-//        // 썸네일 사진 미리보기
-//        Glide.with(getApplicationContext())
-//                .load(uri)
-//                .into(thumbnail);
-//
-//        shotBtn.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                // 서버로 사진 업로드
-//                Toast.makeText(getApplicationContext(), "사진을 서버로 전송중입니다. 잠시만 기다려주세요.", Toast.LENGTH_SHORT).show();
-//                uploadImageToServer(uri);
-//            }
-//        });
-//        saveBtn.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                // 찍은 사진이 갤러리에도 추가되도록 한다
-//                galleryAddPic(uri);
-//                SAVE_FILE = true;
-//                Toast.makeText(getApplicationContext(), "사진이 갤러리에 추가되었습니다.", Toast.LENGTH_SHORT).show();
-//            }
-//        });
-//        retryBtn.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                if (!SAVE_FILE){
-//                    delete_file(uri);
-//                }
-//                displaySetting_CAPTURING_STATE();
-//            }
-//        });
-//    }
-
-//    private void displaySetting_CAPTURING_STATE() {
-//        // 카메라 프리뷰를 다시 시작함
-//        initCameraSetting();
-//    }
-
-//    private void displaySetting_CAPTURED_STATE() {
-//        // 카메라 프리뷰를 멈춤
-//        cameraPreview.surfaceDestroyed(holder);
-//
-//        guideLine.setVisibility(View.GONE);
-//        thumbnail.setVisibility(View.VISIBLE);
-//        retryBtn.setVisibility(View.VISIBLE);
-//        saveBtn.setVisibility(View.VISIBLE);
-//        shotBtn.setText("서버 전송");
-//    }
-
-//    private Bitmap processImage(byte[] data) throws IOException {
-//        // Determine the width/height of the image
-//        int width = mCamera.getParameters().getPictureSize().width;
-//        int height = mCamera.getParameters().getPictureSize().height;
-//        int angleToRotate = getCameraDisplayOrientation(CameraActivity.getInstance, CAMERA_FACING);
-//
-//        // Load the bitmap from the byte array
-//        BitmapFactory.Options options = new BitmapFactory.Options();
-//        options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-//        Bitmap orignalImage = BitmapFactory.decodeByteArray(data, 0, data.length, options);
-//
-//        int croppedWidth = (width > height) ? height : width;
-//        int croppedHeight = (width > height) ? height : width;
-//
-//        Matrix matrix = new Matrix();
-//        // Solve image inverting problem
-//        //angleToRotate = angleToRotate + 90;
-//        Log.i("orient",angleToRotate+"");
-//        Bitmap rotatedImage = rotate(orignalImage, angleToRotate);
-//
-//        // Rotate and crop the image into a square
-//        Bitmap cropped = Bitmap.createBitmap(rotatedImage, 0, 0, croppedWidth, croppedHeight, matrix, true);
-//        rotatedImage.recycle();
-//
-//        // Scale down to the output size
-//        Bitmap scaledBitmap = Bitmap.createScaledBitmap(cropped, IMAGE_SIZE, IMAGE_SIZE, true);
-//        cropped.recycle();
-//
-//        return scaledBitmap;
-//    }
+    private void cameraReOpen(){
+        initCameraSetting();
+        cameraPreview_open();
+        takePicture();
+    }
 
     //Todo : 앱을 나갔다가 들어올때, 앱 위에 다른 앱이 올라왔을 때 등에서
     // 카메라를 해제하고 다시 키는 작업 수행
@@ -592,9 +590,7 @@ public class CameraActivity extends AppCompatActivity {
         super.onResume();
         Log.i("CameraPreview_Log", mCamera.toString());
         if (mCamera == null) {
-            initCameraSetting();
-            cameraPreview_open();
-            takePicture();
+            cameraReOpen();
         }
     }
 }

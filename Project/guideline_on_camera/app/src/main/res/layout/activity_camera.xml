@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<RelativeLayout
+    android:id="@+id/totalLayout"
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -9,7 +10,7 @@
     <FrameLayout
         android:id="@+id/cameraPreviewFrame"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:layout_centerInParent="true"
         />
 <!--    <com.example.guideline_on_camera.util.CameraPreview-->
@@ -21,10 +22,9 @@
     <RelativeLayout
         android:id="@+id/overlay_top"
         android:layout_width="match_parent"
-        android:layout_height="100dp"
+        android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:background="#ffffff">
-
         <ImageView
             android:id="@+id/camera_exit"
             android:layout_width="wrap_content"
@@ -34,20 +34,21 @@
             android:layout_marginTop="16dp"
             android:layout_marginEnd="16dp"
             android:layout_marginRight="16dp"
+            android:onClick="onClick"
             android:src="@drawable/ic_xbox"
-            android:onClick="onClick"/>
-
+            android:layout_marginBottom="24dp"/>
         <TextView
             android:id="@+id/camera_notice"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
             android:layout_centerHorizontal="true"
+            android:layout_below="@id/camera_exit"
             android:fontFamily="@font/noto_sans_cjkkr_bold"
             android:text="camera notice"
             android:textColor="#272727"
             android:textSize="18sp"
-            android:gravity="center"/>
+            android:gravity="center"
+            android:layout_marginBottom="16dp"/>
     </RelativeLayout>
 
     <ImageView
@@ -64,13 +65,6 @@
         android:layout_height="match_parent"
         android:visibility="visible"
         android:layout_above="@+id/bottomBar"/>-->
-
-    <ImageView
-        android:id="@id/thumbnail"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/overlay_top"
-        android:visibility="gone" />
 
     <RelativeLayout
         android:id="@+id/overlay_left"
@@ -89,8 +83,9 @@
     <RelativeLayout
         android:id="@+id/previewArea"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
+        android:layout_height="984px"
+        android:layout_below="@id/overlay_top"
+        android:layout_centerHorizontal="true"
         />
 
     <RelativeLayout

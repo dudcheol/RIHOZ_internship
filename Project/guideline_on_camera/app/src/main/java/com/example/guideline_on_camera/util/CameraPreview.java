@@ -13,11 +13,13 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import com.example.guideline_on_camera.CameraActivity;
+import com.example.guideline_on_camera.VO.DeviceInfo;
 
 import java.io.IOException;
 import java.util.List;
 
 public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
+    public static DeviceInfo deviceInfo;
     private static int CAMERA_FACING;
     private String TAG = "CameraPreview_Log";
     private static Camera mCamera;
@@ -44,6 +46,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     @Override
     public void surfaceCreated(SurfaceHolder surfaceHolder) {
         Log.i(TAG, "surfaceCreate 호출");
+        deviceInfo = new DeviceInfo();
 
         try {
             // 카메라 객체를 사용할 수 있게 연결한다.
@@ -59,13 +62,13 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
             // 사용중인 기기 화면에 맞는 프리뷰 사이즈 설정
             previewSize = getOptimalPreviewSize(camParams.getSupportedPreviewSizes());
+            deviceInfo.setPreviewSize(previewSize);
 
             // preview size와 가장 근접한 picture size를 찾고 그것을 picturesize로 설정한다.
             double mRatio = (double)previewSize.width / (double)previewSize.height;
             Camera.Size pictureSize = previewSize;
             for (Camera.Size size : camParams.getSupportedPictureSizes()) {
-                if (size.width <= previewSize.width && size.height <= previewSize.height ) {
-                    //&& mRatio == (double)size.width/(double)size.height
+                if (size.width <= previewSize.width && size.height <= previewSize.height && mRatio == (double)size.width/(double)size.height) {
                     if(size.height > 720) continue;
                     pictureSize = size;
                     break;
@@ -73,6 +76,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             }
 //            camParams.setPictureSize(pictureSize.width, pictureSize.height);
             camParams.setPictureSize(pictureSize.width, pictureSize.height);
+            deviceInfo.setPictureSize(pictureSize);
             mCamera.setParameters(camParams);
             Log.i(TAG, "picturesize width: "+pictureSize.width + "");
             Log.i(TAG, "picturesize height: "+pictureSize.height + "");

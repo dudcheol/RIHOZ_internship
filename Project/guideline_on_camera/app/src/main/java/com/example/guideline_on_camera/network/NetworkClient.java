@@ -2,10 +2,11 @@ package com.example.guideline_on_camera.network;
 
 import android.content.Context;
 
+import com.example.guideline_on_camera.VO.GetResponse;
+
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
-import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
@@ -29,9 +30,23 @@ public class NetworkClient {
         return retrofit;
     }
 
-    public interface UploadAPIs {
+    public interface UploadProfile {
         @Multipart
         @POST("/fileStorage")
-        Call<ResponseBody> uploadImage(@Part MultipartBody.Part file, @Part("description") RequestBody requestBody, @Part("angle") RequestBody angle);
+        Call<GetResponse> uploadImage(@Part MultipartBody.Part file,
+                                      @Part("description") RequestBody requestBody,
+                                      @Part("angle") RequestBody angle,
+                                      @Part("top") RequestBody top,
+                                      @Part("left") RequestBody left);
+    }
+
+    public interface UploadIDCard {
+        @Multipart
+        @POST("/ocr/idRecognition")
+        Call<GetResponse> uploadImage(@Part MultipartBody.Part file,
+                                      @Part("description") RequestBody requestBody,
+                                      @Part("angle") RequestBody angle,
+                                      @Part("top") RequestBody top,
+                                      @Part("left") RequestBody left);
     }
 }

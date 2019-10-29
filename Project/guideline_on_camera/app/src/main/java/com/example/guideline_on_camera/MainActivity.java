@@ -18,18 +18,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import com.example.guideline_on_camera.network.NetworkClient;
-
-import java.io.File;
-
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.RequestBody;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-import retrofit2.Retrofit;
-
 public class MainActivity extends AppCompatActivity {
     private int RESULT_CAMERA_PERMISSIONS = 100;
     private int RESULT_READ_EXTERNAL_STORAGE_PERMISSIONS = 200;
@@ -54,18 +42,20 @@ public class MainActivity extends AppCompatActivity {
 
         idcard_camera.setOnClickListener(v -> {
             Intent intent = new Intent(this, CameraActivity.class);
-            intent.putExtra("View",1);
+            intent.putExtra("View",1000);
             startActivity(intent);
         });
 
         btn.setOnClickListener(v -> {
             Intent intent = new Intent(this, CameraActivity.class);
-            intent.putExtra("View",2);
+            intent.putExtra("View",2000);
             startActivity(intent);
         });
 
         sendImg.setOnClickListener(v -> {
-            selectImage();
+            Intent intent = new Intent(this, CameraActivity.class);
+            intent.putExtra("View",3000);
+            startActivity(intent);
         });
     }
 
@@ -77,43 +67,43 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void uploadImageToServer(String imagePath) {
-        Retrofit retrofit = NetworkClient.getRetrofitClient(this);
-
-        NetworkClient.UploadAPIs uploadAPIs = retrofit.create(NetworkClient.UploadAPIs.class);
-
-        // 파일 경로 사용해서 파일 오브젝트 생성
-        File file = new File(imagePath);
-
-        // 미디어타입 '이미지'인 리퀘스트 바디 생성
-        RequestBody fileReqBody = RequestBody.create(MediaType.parse("image/*"),file);
-
-        // 리퀘스트 바디와 파일명, part명을 사용해서 멀티파트바디 생성
-        MultipartBody.Part part = MultipartBody.Part.createFormData("userfile",file.getName(),fileReqBody);
-
-        // 텍스트 설명과 텍스트 미디어 타입을 사용해서 리퀘스트 바디 생성
-        RequestBody description = RequestBody.create(MediaType.parse("multipart/form-data"),"android");
-        Call call = uploadAPIs.uploadImage(part, description, null);
-        
-        call.enqueue(new Callback() {
-            @Override
-            public void onResponse(Call call, Response response) {
-                if (response.isSuccessful()){
-                    Log.i("정민님의 응답",response.message());
-                    Log.i("정민님의 응답",response.toString());
-                    Toast.makeText(getApplicationContext(), "Response : 업로드 성공", Toast.LENGTH_SHORT).show();
-                }else{
-                    Toast.makeText(getApplicationContext(), "Response : 업로드 실패", Toast.LENGTH_SHORT).show();
-                }
-            }
-
-            @Override
-            public void onFailure(Call call, Throwable t) {
-                Toast.makeText(getApplicationContext(), "Fail : 업로드 실패", Toast.LENGTH_SHORT).show();
-                Log.e("Fail",t.getMessage());
-            }
-        });
-    }
+//    private void uploadImageToServer(String imagePath) {
+//        Retrofit retrofit = NetworkClient.getRetrofitClient(this);
+//
+//        NetworkClient.UploadAPIs uploadAPIs = retrofit.create(NetworkClient.UploadAPIs.class);
+//
+//        // 파일 경로 사용해서 파일 오브젝트 생성
+//        File file = new File(imagePath);
+//
+//        // 미디어타입 '이미지'인 리퀘스트 바디 생성
+//        RequestBody fileReqBody = RequestBody.create(MediaType.parse("image/*"),file);
+//
+//        // 리퀘스트 바디와 파일명, part명을 사용해서 멀티파트바디 생성
+//        MultipartBody.Part part = MultipartBody.Part.createFormData("userfile",file.getName(),fileReqBody);
+//
+//        // 텍스트 설명과 텍스트 미디어 타입을 사용해서 리퀘스트 바디 생성
+//        RequestBody description = RequestBody.create(MediaType.parse("multipart/form-data"),"android");
+//        Call call = uploadAPIs.uploadImage(part, description, null, null, null);
+//
+//        call.enqueue(new Callback() {
+//            @Override
+//            public void onResponse(Call call, Response response) {
+//                if (response.isSuccessful()){
+//                    Log.i("정민님의 응답",response.message());
+//                    Log.i("정민님의 응답",response.toString());
+//                    Toast.makeText(getApplicationContext(), "Response : 업로드 성공", Toast.LENGTH_SHORT).show();
+//                }else{
+//                    Toast.makeText(getApplicationContext(), "Response : 업로드 실패", Toast.LENGTH_SHORT).show();
+//                }
+//            }
+//
+//            @Override
+//            public void onFailure(Call call, Throwable t) {
+//                Toast.makeText(getApplicationContext(), "Fail : 업로드 실패", Toast.LENGTH_SHORT).show();
+//                Log.e("Fail",t.getMessage());
+//            }
+//        });
+//    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
@@ -124,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
                 if(rcvImageUri != null){
                     selectedImage.setImageURI(rcvImageUri);
                     Log.i(TAG,rcvImageUri.toString());
-                    uploadImageToServer(getRealPathFromURI(rcvImageUri));
+//                    uploadImageToServer(getRealPathFromURI(rcvImageUri));
                     Log.i(TAG,getRealPathFromURI(rcvImageUri));
                 }else{
                     Toast.makeText(this, "사진첩에서 이미지를 받아오는데 실패했습니다. 다시 시도해주세요.", Toast.LENGTH_SHORT).show();
