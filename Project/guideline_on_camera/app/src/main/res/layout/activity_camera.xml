@@ -36,7 +36,7 @@
             android:layout_marginRight="16dp"
             android:onClick="onClick"
             android:src="@drawable/ic_xbox"
-            android:layout_marginBottom="15dp"/>
+            android:layout_marginBottom="7dp"/>
         <TextView
             android:id="@+id/camera_notice"
             android:layout_width="wrap_content"
@@ -85,7 +85,7 @@
             android:id="@+id/face_line"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:src="@drawable/ic_face_line" />
+            android:src="@drawable/face_line" />
     </RelativeLayout>
 
     <RelativeLayout

@@ -33,6 +33,7 @@ import com.example.guideline_on_camera.util.ProgressMaterialDialog;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -272,69 +273,15 @@ public class CameraActivity extends AppCompatActivity {
         });
     }
 
-    private void uploadImageToServer_Profile(byte[] data) {
-        Retrofit retrofit = NetworkClient.getRetrofitClient(this);
-        NetworkClient.UploadProfile uploadProfile = retrofit.create(NetworkClient.UploadProfile.class);
-        // 미디어타입 '이미지'인 리퀘스트 바디 생성
-        RequestBody fileReqBody = RequestBody.create(MediaType.parse("image/*"), data);
-        // 리퀘스트 바디와 파일명, part명을 사용해서 멀티파트바디 생성
-        MultipartBody.Part part = MultipartBody.Part.createFormData("userfile", "picture", fileReqBody);
-        // 텍스트 설명과 텍스트 미디어 타입을 사용해서 리퀘스트 바디 생성
-        RequestBody description = RequestBody.create(MediaType.parse("multipart/form-data"), "android");
-        // 앵글 값 전달
-        RequestBody angle = RequestBody.create(MediaType.parse("multipart/form-data"), Integer.toString(getCameraDisplayOrientation(CameraActivity.getInstance, CAMERA_FACING)));
-        // top,left 값 전달
-        RequestBody left = RequestBody.create(MediaType.parse("multipart/form-data"), Integer.toString(submitCuttingInfo().x));
-        RequestBody top = RequestBody.create(MediaType.parse("multipart/form-data"), Integer.toString(submitCuttingInfo().y));
-
-        Call call = uploadProfile.uploadImage(part, description, angle, top, left);
-        call.enqueue(new Callback<GetResponse>() {
-            @Override
-            public void onResponse(Call<GetResponse> call, Response<GetResponse> response) {
-                if (response.isSuccessful()) {
-                    GetResponse res = response.body();
-                    if (res.isResponse()) {
-                        // 일단 아무것도 안함
-                        changeViewSetting(PROFILE_CAPTURED_ERR_VIEW);
-                        Toast.makeText(getInstance, "업로드 성공!!!", Toast.LENGTH_SHORT).show();
-                    } else {
-                        changeViewSetting(PROFILE_CAPTURED_ERR_VIEW);
-                    }
-                    Log.i("response_to_server", res.isResponse() + "");
-                    showDialog(false, null);
-                } else {
-                    // Todo : 여기 에러의 경우는 어떻게 처리?
-                    Log.e("response_upload_fail", response.message());
-                    Log.e("response_upload_fail", response.errorBody().toString());
-                    showDialog(false, null);
-                }
-            }
-            @Override
-            public void onFailure(Call call, Throwable t) {
-                Toast.makeText(getApplicationContext(), "Fail : 업로드 실패", Toast.LENGTH_SHORT).show();
-                Log.e("response_to_server",t.toString());
-                showDialog(false, null);
-                showPopup();
-            }
-        });
-    }
-
     private void uploadImageToServer_IDCard(byte[] data){
         Retrofit retrofit = NetworkClient.getRetrofitClient(this);
         NetworkClient.UploadIDCard uploadProfile = retrofit.create(NetworkClient.UploadIDCard.class);
         // 미디어타입 '이미지'인 리퀘스트 바디 생성
         RequestBody fileReqBody = RequestBody.create(MediaType.parse("image/*"), data);
-        // 리퀘스트 바디와 파일명, part명을 사용해서 멀티파트바디 생성
+        // 리퀘스트 바디와 파일명, part명을 사용해서 멀티파트바디 생성 Todo : filename은 나중에 고유값으로 변경해서 보내야 할듯
         MultipartBody.Part part = MultipartBody.Part.createFormData("idCard", "picture", fileReqBody);
-        // 텍스트 설명과 텍스트 미디어 타입을 사용해서 리퀘스트 바디 생성
-        RequestBody description = RequestBody.create(MediaType.parse("multipart/form-data"), "android");
-        // 앵글 값 전달
-        RequestBody angle = RequestBody.create(MediaType.parse("multipart/form-data"), Integer.toString(getCameraDisplayOrientation(CameraActivity.getInstance, CAMERA_FACING)));
-        // top,left 값 전달
-        RequestBody left = RequestBody.create(MediaType.parse("multipart/form-data"), Integer.toString(submitCuttingInfo().x));
-        RequestBody top = RequestBody.create(MediaType.parse("multipart/form-data"), Integer.toString(submitCuttingInfo().y));
-
-        Call call = uploadProfile.uploadImage(part, description, angle, top, left);
+        HashMap<String,RequestBody> requestBodies = requestBodySetting();
+        Call call = uploadProfile.uploadImage(part, requestBodies.get("description"), requestBodies.get("angle"), requestBodies.get("top"), requestBodies.get("left"));
         call.enqueue(new Callback<GetResponse>() {
             @Override
             public void onResponse(Call<GetResponse> call, Response<GetResponse> response) {
@@ -367,6 +314,68 @@ public class CameraActivity extends AppCompatActivity {
                 showPopup();
             }
         });
+    }
+
+    private void uploadImageToServer_Profile(byte[] data) {
+        Retrofit retrofit = NetworkClient.getRetrofitClient(this);
+        NetworkClient.UploadProfile uploadProfile = retrofit.create(NetworkClient.UploadProfile.class);
+        // 미디어타입 '이미지'인 리퀘스트 바디 생성
+        RequestBody fileReqBody = RequestBody.create(MediaType.parse("image/*"), data);
+        // 리퀘스트 바디와 파일명, part명을 사용해서 멀티파트바디 생성 // Todo : filename은 나중에 고유값으로 변경해서 보내야 할듯
+        MultipartBody.Part part = MultipartBody.Part.createFormData("profile", "picture", fileReqBody);
+        HashMap<String,RequestBody> requestBodies = requestBodySetting();
+        Call call = uploadProfile.uploadImage(part, requestBodies.get("description"), requestBodies.get("angle"), requestBodies.get("top"), requestBodies.get("left"));
+        call.enqueue(new Callback<GetResponse>() {
+            @Override
+            public void onResponse(Call<GetResponse> call, Response<GetResponse> response) {
+                if (response.isSuccessful()) {
+                    GetResponse res = response.body();
+                    if (res.isResponse()) {
+                        // 일단 아무것도 안함
+                        changeViewSetting(PROFILE_CAPTURED_ERR_VIEW);
+                        Toast.makeText(getInstance, "업로드 성공!!!", Toast.LENGTH_SHORT).show();
+                    } else {
+                        changeViewSetting(PROFILE_CAPTURED_ERR_VIEW);
+                    }
+                    Log.i("response_to_server", res.isResponse() + "");
+                    showDialog(false, null);
+                } else {
+                    // Todo : 여기 에러의 경우는 어떻게 처리?
+                    Log.e("response_upload_fail", response.message());
+                    Log.e("response_upload_fail", response.errorBody().toString());
+                    showDialog(false, null);
+                }
+            }
+            @Override
+            public void onFailure(Call call, Throwable t) {
+                Toast.makeText(getApplicationContext(), "Fail : 업로드 실패", Toast.LENGTH_SHORT).show();
+                Log.e("response_to_server",t.toString());
+                showDialog(false, null);
+                showPopup();
+            }
+        });
+    }
+
+    private HashMap<String,RequestBody> requestBodySetting(){
+        // 텍스트 설명과 텍스트 미디어 타입을 사용해서 리퀘스트 바디 생성
+        HashMap<String,RequestBody> requestBodies = new HashMap<>();
+        // 텍스트 설명과 텍스트 미디어 타입을 사용해서 리퀘스트 바디 생성
+        RequestBody description = RequestBody.create(MediaType.parse("multipart/form-data"), "android");
+        // 앵글 값 전달
+        RequestBody angle = RequestBody.create(MediaType.parse("multipart/form-data"), Integer.toString(getCameraDisplayOrientation(CameraActivity.getInstance, CAMERA_FACING)));
+        // top,left 값 전달
+        RequestBody left = RequestBody.create(MediaType.parse("multipart/form-data"), Integer.toString(submitCuttingInfo().x));
+        RequestBody top = RequestBody.create(MediaType.parse("multipart/form-data"), Integer.toString(submitCuttingInfo().y));
+
+        requestBodies.put("description",description);
+        requestBodies.put("angle",angle);
+        requestBodies.put("left",left);
+        requestBodies.put("top",top);
+
+        Log.i("request_body_setting", "get 한거 : "+requestBodies.get("description"));
+        Log.i("request_body_setting", "get 안한거 : " + description);
+
+        return requestBodies;
     }
 
     private void showDialog(boolean state, String text) {

@@ -32,7 +32,7 @@ public class NetworkClient {
 
     public interface UploadProfile {
         @Multipart
-        @POST("/fileStorage")
+        @POST("/profile")
         Call<GetResponse> uploadImage(@Part MultipartBody.Part file,
                                       @Part("description") RequestBody requestBody,
                                       @Part("angle") RequestBody angle,
