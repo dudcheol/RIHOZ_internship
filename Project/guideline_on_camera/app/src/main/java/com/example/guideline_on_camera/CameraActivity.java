@@ -84,11 +84,11 @@ public class CameraActivity extends AppCompatActivity {
 
     //view : FOREIGNCARD
     private final int FOREIGNCARD_CAMERA_VIEW = 3001;
-    private final int FOREIGNCARD_CAPTURED_ERR_VIEW = 3002;
 
     //view : FOREIGNCARD_BACK
     private final int FOREIGNCARD_BACK_CAMERA_VIEW = 4001;
-    private final int FOREIGNCARD_BACK_CAPTURED_ERR_VIEW = 4002;
+
+    private int NUMBER_OF_OCR_TRY=0;
 
 
     MaterialDialog progressDialog = null;
@@ -187,6 +187,7 @@ public class CameraActivity extends AppCompatActivity {
             switch (VIEW_TYPE){
                 case VIEW_TYPE_IDCARD:
                 case VIEW_TYPE_FOREIGNCARD:
+                case VIEW_TYPE_FOREIGNCARD_BACK:
                     uploadImageToServer_IDCard(data);
                     break;
                 case VIEW_TYPE_PROFILE:
@@ -243,7 +244,8 @@ public class CameraActivity extends AppCompatActivity {
         if(mCamera==null){
             switch (VIEW_TYPE) {
                 case VIEW_TYPE_IDCARD: // id card
-                case VIEW_TYPE_FOREIGNCARD: // profile
+                case VIEW_TYPE_FOREIGNCARD:
+                case VIEW_TYPE_FOREIGNCARD_BACK:
                     CAMERA_FACING = Camera.CameraInfo.CAMERA_FACING_BACK;
                     mCamera = Camera.open(CAMERA_FACING);
                     break;
@@ -275,35 +277,44 @@ public class CameraActivity extends AppCompatActivity {
 
     private void uploadImageToServer_IDCard(byte[] data){
         Retrofit retrofit = NetworkClient.getRetrofitClient(this);
-        NetworkClient.UploadIDCard uploadProfile = retrofit.create(NetworkClient.UploadIDCard.class);
+        NetworkClient.UploadIDCard uploadIDCard = retrofit.create(NetworkClient.UploadIDCard.class);
         // 미디어타입 '이미지'인 리퀘스트 바디 생성
         RequestBody fileReqBody = RequestBody.create(MediaType.parse("image/*"), data);
         // 리퀘스트 바디와 파일명, part명을 사용해서 멀티파트바디 생성 Todo : filename은 나중에 고유값으로 변경해서 보내야 할듯
         MultipartBody.Part part = MultipartBody.Part.createFormData("idCard", "picture", fileReqBody);
         HashMap<String,RequestBody> requestBodies = requestBodySetting();
-        Call call = uploadProfile.uploadImage(part, requestBodies.get("description"), requestBodies.get("angle"), requestBodies.get("top"), requestBodies.get("left"));
+        Call call = uploadIDCard.uploadImage(part, requestBodies.get("description"), requestBodies.get("angle"), requestBodies.get("top"), requestBodies.get("left"), requestBodies.get("count"));
         call.enqueue(new Callback<GetResponse>() {
             @Override
             public void onResponse(Call<GetResponse> call, Response<GetResponse> response) {
                 if (response.isSuccessful()) {
                     GetResponse res = response.body();
                     if (res.isResponse()) {
+                        // TYPE 을 못 받아 올 경우
                         if(res.getType().equals("error")){
                             changeViewSetting(IDCARD_CAPTURED_ERR_VIEW);
+                            NUMBER_OF_OCR_TRY++;
+                        } else {
+                            NUMBER_OF_OCR_TRY=0;
                         }
                         // 일단 아무것도 안함
                         Toast.makeText(getInstance, res.getName()+res.getRegistrationNumFront()+res.getRegistrationNumBack()+res.getType(), Toast.LENGTH_SHORT).show();
-                        Log.i("response_to_server",res.getName()+res.getRegistrationNumBack()+res.getRegistrationNumFront()+res.getType());
+                        Log.i("response_to_server", "response1 : " +res.getName()+res.getRegistrationNumBack()+res.getRegistrationNumFront()+res.getType());
+                        Log.i("response_to_server", "response2 : " +res.getTitle()+res.getContentFirst()+res.getContentSecond()+res.getButtonText());
                     } else {
+                        // Todo : response가 false 일 경우는 어떻게?
+                        changeViewSetting(IDCARD_CAPTURED_ERR_VIEW);
                         Toast.makeText(getInstance, "업로드 실패!!!", Toast.LENGTH_SHORT).show();
+                        Log.i("response_to_server", "response : "+res.isResponse());
                     }
-                    Log.i("response_to_server", res.isResponse() + "");
                     showDialog(false, null);
                 } else {
-                    // Todo : 여기 에러의 경우는 어떻게 처리?
-                    Log.e("response_upload_fail", response.message());
-                    Log.e("response_upload_fail", response.errorBody().toString());
+                    // Todo : 여기 에러의 경우는 어떻게 처리? 네트워크 통신 안된 것 말고도 더 있는듯
+                    Log.e("response_to_server", "error msg : "+response.message());
+                    Log.e("response_to_server", "error body : "+response.errorBody().toString());
+                    Log.e("response_to_server", "error code : "+response.code());
                     showDialog(false, null);
+                    showPopup();
                 }
             }
             @Override
@@ -332,7 +343,6 @@ public class CameraActivity extends AppCompatActivity {
                     GetResponse res = response.body();
                     if (res.isResponse()) {
                         // 일단 아무것도 안함
-                        changeViewSetting(PROFILE_CAPTURED_ERR_VIEW);
                         Toast.makeText(getInstance, "업로드 성공!!!", Toast.LENGTH_SHORT).show();
                     } else {
                         changeViewSetting(PROFILE_CAPTURED_ERR_VIEW);
@@ -344,6 +354,7 @@ public class CameraActivity extends AppCompatActivity {
                     Log.e("response_upload_fail", response.message());
                     Log.e("response_upload_fail", response.errorBody().toString());
                     showDialog(false, null);
+                    showPopup();
                 }
             }
             @Override
@@ -366,11 +377,14 @@ public class CameraActivity extends AppCompatActivity {
         // top,left 값 전달
         RequestBody left = RequestBody.create(MediaType.parse("multipart/form-data"), Integer.toString(submitCuttingInfo().x));
         RequestBody top = RequestBody.create(MediaType.parse("multipart/form-data"), Integer.toString(submitCuttingInfo().y));
+        // ocr 시도 횟수 전달
+        RequestBody count = RequestBody.create(MediaType.parse("multipart/form-data"), Integer.toString(NUMBER_OF_OCR_TRY));
 
         requestBodies.put("description",description);
         requestBodies.put("angle",angle);
         requestBodies.put("left",left);
         requestBodies.put("top",top);
+        requestBodies.put("count",count);
 
         Log.i("request_body_setting", "get 한거 : "+requestBodies.get("description"));
         Log.i("request_body_setting", "get 안한거 : " + description);
@@ -441,12 +455,10 @@ public class CameraActivity extends AppCompatActivity {
 
         switch (viewName) {
             case IDCARD_CAMERA_VIEW:
-            case FOREIGNCARD_CAMERA_VIEW:
                 idcard_line.setVisibility(View.VISIBLE);
                 camera_notice.setText("글자가 잘 보이게 찍어주세요");
                 break;
             case IDCARD_CAPTURED_ERR_VIEW:
-            case FOREIGNCARD_CAPTURED_ERR_VIEW:
                 cameraReOpen();
                 idcard_line.setVisibility(View.VISIBLE);
                 camera_notice.setText("인식이 안돼요! 다시 찍어주세요");
@@ -460,6 +472,11 @@ public class CameraActivity extends AppCompatActivity {
                 cameraReOpen();
                 face_line.setVisibility(View.VISIBLE);
                 camera_notice.setText("사진이 흔들렸어요! 다시 찍어주세요");
+                break;
+
+            case FOREIGNCARD_BACK_CAMERA_VIEW:
+                idcard_line.setVisibility(View.VISIBLE);
+                camera_notice.setText("뒷면 전체가 잘 보이게 찍어주세요");
                 break;
         }
     }
@@ -489,6 +506,7 @@ public class CameraActivity extends AppCompatActivity {
         switch (VIEW_TYPE) {
             case VIEW_TYPE_IDCARD:
             case VIEW_TYPE_FOREIGNCARD:
+            case VIEW_TYPE_FOREIGNCARD_BACK:
 //                // id card 탑, 바텀 오버레이 설정
                 overlayParams_previewArea.height = (int) (screenWidth * 0.64);
                 previewArea.setLayoutParams(overlayParams_previewArea);
@@ -522,15 +540,6 @@ public class CameraActivity extends AppCompatActivity {
 
     public void onClick(View v) {
         switch (v.getId()) {
-            case R.id.retryBtn:
-                if (VIEW_TYPE == VIEW_TYPE_IDCARD || VIEW_TYPE == VIEW_TYPE_FOREIGNCARD) {
-                    cameraReOpen();
-                    changeViewSetting(IDCARD_CAMERA_VIEW);
-                } else if (VIEW_TYPE == VIEW_TYPE_PROFILE) {
-                    cameraReOpen();
-                    changeViewSetting(PROFILE_CAMERA_VIEW);
-                }
-                break;
             case R.id.camera_exit:
                 finish();
                 break;
@@ -575,7 +584,7 @@ public class CameraActivity extends AppCompatActivity {
         if(mCamera!=null)Log.i("life-cycle", "camera reopen : " + mCamera.toString());
         if (mCamera == null) {
             cameraReOpen();
-            cameraPreview_open();
+//            cameraPreview_open();
         }
     }
 

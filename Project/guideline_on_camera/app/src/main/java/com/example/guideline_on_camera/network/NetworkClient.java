@@ -47,6 +47,7 @@ public class NetworkClient {
                                       @Part("description") RequestBody requestBody,
                                       @Part("angle") RequestBody angle,
                                       @Part("top") RequestBody top,
-                                      @Part("left") RequestBody left);
+                                      @Part("left") RequestBody left,
+                                      @Part("count") RequestBody count);
     }
 }

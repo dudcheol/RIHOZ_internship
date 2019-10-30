@@ -24,7 +24,7 @@ public class MainActivity extends AppCompatActivity {
     private int RESULT_WRITE_EXTERNAL_STORAGE_PERMISSIONS = 300;
     private static final String TAG = "MAIN_LOG";
     private static int REQUEST_IMAGE_GET = 1000;
-    private Button btn, sendImg, idcard_camera;
+    private Button btn, sendImg, idcard_camera, backbtn;
     private ImageView selectedImage;
     private String url;
 
@@ -37,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
         sendImg = findViewById(R.id.sendImg);
         selectedImage = findViewById(R.id.selectedImage);
         idcard_camera = findViewById(R.id.idcard_camera);
+        backbtn = findViewById(R.id.backbtn);
 
         requestPermissionCamera();
 
@@ -55,6 +56,12 @@ public class MainActivity extends AppCompatActivity {
         sendImg.setOnClickListener(v -> {
             Intent intent = new Intent(this, CameraActivity.class);
             intent.putExtra("View",3000);
+            startActivity(intent);
+        });
+
+        backbtn.setOnClickListener(v -> {
+            Intent intent = new Intent(this, CameraActivity.class);
+            intent.putExtra("View",4000);
             startActivity(intent);
         });
     }

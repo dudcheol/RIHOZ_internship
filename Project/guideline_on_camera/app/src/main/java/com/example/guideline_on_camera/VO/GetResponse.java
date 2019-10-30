@@ -22,6 +22,18 @@ public class GetResponse {
     @SerializedName("visa")
     @Expose
     private String visa;
+    @SerializedName("title")
+    @Expose
+    private String title;
+    @SerializedName("contentFirst")
+    @Expose
+    private String contentFirst;
+    @SerializedName("contentSecond")
+    @Expose
+    private String contentSecond;
+    @SerializedName("buttonText")
+    @Expose
+    private String buttonText;
 
     /* getter */
     public boolean isResponse() {
@@ -48,6 +60,22 @@ public class GetResponse {
         return visa;
     }
 
+    public String getTitle() {
+        return title;
+    }
+
+    public String getContentFirst() {
+        return contentFirst;
+    }
+
+    public String getContentSecond() {
+        return contentSecond;
+    }
+
+    public String getButtonText() {
+        return buttonText;
+    }
+
     /* setter */
     public void setResponse(boolean response) {
         this.response = response;
@@ -71,5 +99,21 @@ public class GetResponse {
 
     public void setVisa(String visa) {
         this.visa = visa;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public void setContentFirst(String contentFirst) {
+        this.contentFirst = contentFirst;
+    }
+
+    public void setContentSecond(String contentSecond) {
+        this.contentSecond = contentSecond;
+    }
+
+    public void setButtonText(String buttonText) {
+        this.buttonText = buttonText;
     }
 }
