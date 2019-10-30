@@ -62,7 +62,7 @@ public class CameraActivity extends AppCompatActivity {
     private final int CAMERA_STATE_BUSY = 2;
     private final int CAMERA_STATE_PREVIEW = 3;
 
-    private Button shotBtn, retryBtn, submitBtn;
+    private Button shotBtn;
     private ImageView cleaner_uniform;
     private RelativeLayout previewArea, overlay_top, overlay_left, totalLayout;
     private TextView camera_notice;
@@ -74,6 +74,7 @@ public class CameraActivity extends AppCompatActivity {
     public final int VIEW_TYPE_IDCARD = 1000;
     public final int VIEW_TYPE_PROFILE = 2000;
     public final int VIEW_TYPE_FOREIGNCARD = 3000;
+    public final int VIEW_TYPE_FOREIGNCARD_BACK = 4000;
 
     //view : IDCARD
     private final int IDCARD_CAMERA_VIEW = 1001;
@@ -89,6 +90,12 @@ public class CameraActivity extends AppCompatActivity {
     private final int FOREIGNCARD_CAMERA_VIEW = 3001;
     private final int FOREIGNCARD_CAPTURED_ERR_VIEW = 3002;
     private final int FOREIGNCARD_CAPTURED_TIMEOUT_VIEW = 3003;
+
+    //view : FOREIGNCARD_BACK
+    private final int FOREIGNCARD_BACK_CAMERA_VIEW = 4001;
+    private final int FOREIGNCARD_BACK_CAPTURED_ERR_VIEW = 4002;
+    private final int FOREIGNCARD_BACK_CAPTURED_TIMEOUT_VIEW = 4003;
+
 
     MaterialDialog progressDialog = null;
 
@@ -130,8 +137,6 @@ public class CameraActivity extends AppCompatActivity {
 
     private void initSetting() {
         shotBtn = findViewById(R.id.shotBtn);
-        retryBtn = findViewById(R.id.retryBtn);
-        submitBtn = findViewById(R.id.submitBtn);
         cleaner_uniform = findViewById(R.id.cleaner_uniform);
         camera_notice = findViewById(R.id.camera_notice);
         overlay_top = findViewById(R.id.overlay_top);
@@ -140,7 +145,6 @@ public class CameraActivity extends AppCompatActivity {
 //        overlayParams_bottom = (RelativeLayout.LayoutParams) overlay_bottom.getLayoutParams();
         previewArea = findViewById(R.id.previewArea);
         overlayParams_previewArea = (RelativeLayout.LayoutParams) previewArea.getLayoutParams();
-        resultBtnContainer = findViewById(R.id.resultBtnContainer);
         cameraPreviewFrame = findViewById(R.id.cameraPreviewFrame);
         overlay_left = findViewById(R.id.overlay_left);
         totalLayout = findViewById(R.id.totalLayout);
@@ -157,6 +161,9 @@ public class CameraActivity extends AppCompatActivity {
                 break;
             case VIEW_TYPE_FOREIGNCARD:
                 changeViewSetting(FOREIGNCARD_CAMERA_VIEW);
+                break;
+            case VIEW_TYPE_FOREIGNCARD_BACK:
+                changeViewSetting(FOREIGNCARD_BACK_CAMERA_VIEW);
                 break;
         }
     }
@@ -184,6 +191,7 @@ public class CameraActivity extends AppCompatActivity {
             showDialog(true, "사진 저장중입니다. 기다려주세요.");
             switch (VIEW_TYPE){
                 case VIEW_TYPE_IDCARD:
+                case VIEW_TYPE_FOREIGNCARD:
                     uploadImageToServer_IDCard(data);
                     break;
                 case VIEW_TYPE_PROFILE:
@@ -420,11 +428,13 @@ public class CameraActivity extends AppCompatActivity {
 
         switch (viewName) {
             case IDCARD_CAMERA_VIEW:
+            case FOREIGNCARD_CAMERA_VIEW:
                 shotBtn.setText("사진찍기");
                 shotBtn.setVisibility(View.VISIBLE);
                 camera_notice.setText("글자가 잘 보이게 찍어주세요");
                 break;
             case IDCARD_CAPTURED_ERR_VIEW:
+            case FOREIGNCARD_CAPTURED_ERR_VIEW:
                 cameraReOpen();
                 shotBtn.setText("사진찍기");
                 shotBtn.setVisibility(View.VISIBLE);
@@ -458,17 +468,6 @@ public class CameraActivity extends AppCompatActivity {
                 camera_notice.setText("사진이 흔들렸어요! 다시 찍어주세요");
                 break;
 
-            case FOREIGNCARD_CAMERA_VIEW:
-                shotBtn.setText("사진찍기");
-                shotBtn.setVisibility(View.VISIBLE);
-                camera_notice.setText("글자가 잘 보이게 찍어주세요");
-                break;
-            case FOREIGNCARD_CAPTURED_ERR_VIEW:
-                cameraReOpen();
-                shotBtn.setText("사진찍기");
-                shotBtn.setVisibility(View.VISIBLE);
-                camera_notice.setText("인식이 안돼요! 다시 찍어주세요");
-                break;
             case FOREIGNCARD_CAPTURED_TIMEOUT_VIEW:
                 cameraReOpen();
                 shotBtn.setText("사진찍기");
@@ -503,6 +502,7 @@ public class CameraActivity extends AppCompatActivity {
 
         switch (VIEW_TYPE) {
             case VIEW_TYPE_IDCARD:
+            case VIEW_TYPE_FOREIGNCARD:
 //                // id card 탑, 바텀 오버레이 설정
                 overlayParams_previewArea.height = (int) (screenWidth * 0.64);
                 previewArea.setLayoutParams(overlayParams_previewArea);
@@ -537,16 +537,13 @@ public class CameraActivity extends AppCompatActivity {
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.retryBtn:
-                if (VIEW_TYPE == VIEW_TYPE_IDCARD) {
+                if (VIEW_TYPE == VIEW_TYPE_IDCARD || VIEW_TYPE == VIEW_TYPE_FOREIGNCARD) {
                     cameraReOpen();
                     changeViewSetting(IDCARD_CAMERA_VIEW);
                 } else if (VIEW_TYPE == VIEW_TYPE_PROFILE) {
                     cameraReOpen();
                     changeViewSetting(PROFILE_CAMERA_VIEW);
                 }
-                break;
-            case R.id.submitBtn:
-//                uploadImageToServer();
                 break;
             case R.id.camera_exit:
                 finish();

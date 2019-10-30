@@ -46,7 +46,7 @@
             android:fontFamily="@font/noto_sans_cjkkr_bold"
             android:text="camera notice"
             android:textColor="#272727"
-            android:textSize="18sp"
+            android:textSize="18dp"
             android:gravity="center"
             android:layout_marginBottom="16dp"/>
     </RelativeLayout>
@@ -104,42 +104,41 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@drawable/border_gold"
-            android:text="확인"
+            android:text="shotBtn"
             android:layout_alignParentBottom="true"
-            android:visibility="gone"
             android:onClick="onClick"
             />
 
-        <LinearLayout
-            android:id="@+id/resultBtnContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:weightSum="4"
-            android:layout_alignParentBottom="true"
-            android:visibility="gone">
-            <Button
-                android:id="@+id/retryBtn"
-                style="@style/Text_Button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/border_gray_corners2"
-                android:text="다시 촬영"
-                android:layout_weight="1"
-                android:layout_marginRight="12dp"
-                android:textColor="@color/text_gray_1"
-                android:onClick="onClick"/>
+<!--        <LinearLayout-->
+<!--            android:id="@+id/resultBtnContainer"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:orientation="horizontal"-->
+<!--            android:weightSum="4"-->
+<!--            android:layout_alignParentBottom="true"-->
+<!--            android:visibility="gone">-->
+<!--            <Button-->
+<!--                android:id="@+id/retryBtn"-->
+<!--                style="@style/Text_Button"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:background="@drawable/border_gray_corners2"-->
+<!--                android:text="다시 촬영"-->
+<!--                android:layout_weight="1"-->
+<!--                android:layout_marginRight="12dp"-->
+<!--                android:textColor="@color/text_gray_1"-->
+<!--                android:onClick="onClick"/>-->
 
-            <Button
-                android:id="@+id/submitBtn"
-                style="@style/Text_Button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/border_black_corners_fill"
-                android:text="제출하기"
-                android:layout_weight="3"
-                android:textColor="@color/text_gold"
-                android:onClick="onClick"/>
-        </LinearLayout>
+<!--            <Button-->
+<!--                android:id="@+id/submitBtn"-->
+<!--                style="@style/Text_Button"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:background="@drawable/border_black_corners_fill"-->
+<!--                android:text="제출하기"-->
+<!--                android:layout_weight="3"-->
+<!--                android:textColor="@color/text_gold"-->
+<!--                android:onClick="onClick"/>-->
+<!--        </LinearLayout>-->
     </RelativeLayout>
 </RelativeLayout>

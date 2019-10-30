@@ -7,10 +7,20 @@ public class GetResponse {
     @SerializedName("response")
     @Expose
     private boolean response;
+    @SerializedName("type")
+    @Expose
     private String type;
+    @SerializedName("registrationNumFront")
+    @Expose
     private String registrationNumFront;
+    @SerializedName("registrationNumBack")
+    @Expose
     private String registrationNumBack;
+    @SerializedName("name")
+    @Expose
     private String name;
+    @SerializedName("visa")
+    @Expose
     private String visa;
 
     /* getter */
