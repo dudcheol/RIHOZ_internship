@@ -18,11 +18,12 @@ import com.example.guideline_on_camera.VO.DeviceInfo;
 import java.io.IOException;
 import java.util.List;
 
+import static com.example.guideline_on_camera.CameraActivity.mCamera;
+
 public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
     public static DeviceInfo deviceInfo;
     private static int CAMERA_FACING;
     private String TAG = "CameraPreview_Log";
-    private static Camera mCamera;
     private SurfaceHolder mHolder;
     private Camera.Size previewSize;
     private Camera.Parameters camParams;
@@ -31,10 +32,11 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     public CameraPreview(Context context, int CAMERA_FACING) {
         super(context);
         this.CAMERA_FACING = CAMERA_FACING;
-        mCamera = CameraActivity.getCamera();
         if (mCamera == null) {
-            mCamera = Camera.open();
+            mCamera = Camera.open(CAMERA_FACING);
+            Log.i("life-cycle","camera Change : "+mCamera.toString());
         }
+        Log.i("life-cycle","camera preview CAMERA_FACING : "+CAMERA_FACING);
 
         mHolder = getHolder();
         mHolder.addCallback(this);
@@ -142,12 +144,14 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
         if (mCamera != null) {
             // 카메라 미리보기를 종료한다.
-            this.getHolder().removeCallback(this);
             mCamera.stopPreview();
             mCamera.setPreviewCallback(null);
             mCamera.release();
             mCamera = null;
         }
+
+        if(mCamera!=null) Log.i("life-cycle","surfaceDestroyed - "+mCamera.toString());
+        else Log.i("life-cycle","surfaceDestroyed - Camera dead");
     }
 
     public static void setCameraDisplayOrientation(Activity activity, int cameraId, android.hardware.Camera camera) {

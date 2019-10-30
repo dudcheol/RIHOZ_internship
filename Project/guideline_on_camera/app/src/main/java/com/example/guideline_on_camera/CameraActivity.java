@@ -11,14 +11,12 @@ import android.os.Environment;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
-import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -28,6 +26,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.example.guideline_on_camera.VO.GetResponse;
 import com.example.guideline_on_camera.network.NetworkClient;
+import com.example.guideline_on_camera.util.CameraPopup;
 import com.example.guideline_on_camera.util.CameraPreview;
 import com.example.guideline_on_camera.util.ProgressMaterialDialog;
 
@@ -54,8 +53,7 @@ public class CameraActivity extends AppCompatActivity {
     private static int CAMERA_FACING;
 
     private CameraPreview cameraPreview;
-    private SurfaceHolder holder;
-    private static Camera mCamera;
+    public static Camera mCamera;
     public static CameraActivity getInstance;
     private int previewState;
     private final int CAMERA_STATE_FROZEN = 1;
@@ -63,11 +61,10 @@ public class CameraActivity extends AppCompatActivity {
     private final int CAMERA_STATE_PREVIEW = 3;
 
     private Button shotBtn;
-    private ImageView cleaner_uniform;
+    private ImageView cleaner_uniform, idcard_line;
     private RelativeLayout previewArea, overlay_top, overlay_left, totalLayout;
     private TextView camera_notice;
     private RelativeLayout.LayoutParams overlayParams_top, overlayParams_bottom, overlayParams_previewArea;
-    private LinearLayout resultBtnContainer;
     private FrameLayout cameraPreviewFrame;
 
     private int VIEW_TYPE;
@@ -148,6 +145,7 @@ public class CameraActivity extends AppCompatActivity {
         cameraPreviewFrame = findViewById(R.id.cameraPreviewFrame);
         overlay_left = findViewById(R.id.overlay_left);
         totalLayout = findViewById(R.id.totalLayout);
+        idcard_line = findViewById(R.id.idcard_line);
 
 
         cameraPreview_open();
@@ -198,7 +196,6 @@ public class CameraActivity extends AppCompatActivity {
                     uploadImageToServer_Profile(data);
                     break;
             }
-            cameraPreviewFrame.removeAllViews();
         }
     };
 
@@ -257,6 +254,8 @@ public class CameraActivity extends AppCompatActivity {
                 mCamera = Camera.open(CAMERA_FACING);
                 break;
         }
+        Log.i("life-cycle","camera open : "+mCamera.toString());
+        Log.i("life-cycle","CAMERA_FACING : "+CAMERA_FACING);
     }
 
     private void takePicture() {
@@ -315,8 +314,9 @@ public class CameraActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call call, Throwable t) {
                 Toast.makeText(getApplicationContext(), "Fail : 업로드 실패", Toast.LENGTH_SHORT).show();
-                changeViewSetting(PROFILE_CAPTURED_TIMEOUT_VIEW);
+                Log.e("response_to_server",t.toString());
                 showDialog(false, null);
+                showPopup();
             }
         });
     }
@@ -364,8 +364,9 @@ public class CameraActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call call, Throwable t) {
                 Toast.makeText(getApplicationContext(), "Fail : 업로드 실패", Toast.LENGTH_SHORT).show();
-                changeViewSetting(PROFILE_CAPTURED_TIMEOUT_VIEW);
+                Log.e("response_to_server",t.toString());
                 showDialog(false, null);
+                showPopup();
             }
         });
     }
@@ -383,6 +384,12 @@ public class CameraActivity extends AppCompatActivity {
                 progressDialog=null;
             }
         }
+    }
+
+    private void showPopup(){
+        Intent intent = new Intent(getApplicationContext(), CameraPopup.class);
+        intent.putExtra("serviceCode","networkErr");
+        startActivity(intent);
     }
 
     private Point submitCuttingInfo() {
@@ -418,9 +425,8 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void viewSetting_allDisappear() {
-        shotBtn.setVisibility(View.GONE);
         cleaner_uniform.setVisibility(View.GONE);
-        resultBtnContainer.setVisibility(View.GONE);
+        idcard_line.setVisibility(View.GONE);
     }
 
     private void changeViewSetting(int viewName) {
@@ -429,49 +435,39 @@ public class CameraActivity extends AppCompatActivity {
         switch (viewName) {
             case IDCARD_CAMERA_VIEW:
             case FOREIGNCARD_CAMERA_VIEW:
-                shotBtn.setText("사진찍기");
-                shotBtn.setVisibility(View.VISIBLE);
+                idcard_line.setVisibility(View.VISIBLE);
                 camera_notice.setText("글자가 잘 보이게 찍어주세요");
                 break;
             case IDCARD_CAPTURED_ERR_VIEW:
             case FOREIGNCARD_CAPTURED_ERR_VIEW:
                 cameraReOpen();
-                shotBtn.setText("사진찍기");
-                shotBtn.setVisibility(View.VISIBLE);
+                idcard_line.setVisibility(View.VISIBLE);
                 camera_notice.setText("인식이 안돼요! 다시 찍어주세요");
                 break;
             case IDCARD_CAPTURED_TIMEOUT_VIEW:
                 cameraReOpen();
-                shotBtn.setText("사진찍기");
-                shotBtn.setVisibility(View.VISIBLE);
+                idcard_line.setVisibility(View.VISIBLE);
                 // 문구 바꾸는거 윤지님이 알려줄 예정
                 camera_notice.setText("인식이 안돼요! 다시 찍어주세요");
                 break;
 
             case PROFILE_CAMERA_VIEW:
                 shotBtn.setText("사진찍기");
-                shotBtn.setVisibility(View.VISIBLE);
                 camera_notice.setText("목과 턱을 선에 맞춰 찍어주세요");
                 cleaner_uniform.setVisibility(View.VISIBLE);
                 break;
             case PROFILE_CAPTURED_ERR_VIEW:
                 cameraReOpen();
-                shotBtn.setText("사진찍기");
-                shotBtn.setVisibility(View.VISIBLE);
                 camera_notice.setText("사진이 흔들렸어요! 다시 찍어주세요");
                 break;
             case PROFILE_CAPTURED_TIMEOUT_VIEW:
                 cameraReOpen();
-                shotBtn.setText("사진찍기");
-                shotBtn.setVisibility(View.VISIBLE);
                 // 문구 바꾸는거 윤지님이 알려줄 예정
-                camera_notice.setText("사진이 흔들렸어요! 다시 찍어주세요");
+                camera_notice.setText("목과 턱을 선에 맞춰 다시 찍어주세요");
                 break;
 
             case FOREIGNCARD_CAPTURED_TIMEOUT_VIEW:
                 cameraReOpen();
-                shotBtn.setText("사진찍기");
-                shotBtn.setVisibility(View.VISIBLE);
                 // 문구 바꾸는거 윤지님이 알려줄 예정
                 camera_notice.setText("인식이 안돼요! 다시 찍어주세요");
                 break;
@@ -509,7 +505,7 @@ public class CameraActivity extends AppCompatActivity {
                 break;
             case VIEW_TYPE_PROFILE:
                 // frofile 탑, 바텀 오버레이 설정
-                overlayParams_previewArea.height = (int) (screenWidth * 1.15);
+                overlayParams_previewArea.height = (int) (screenWidth * 1.2);
                 previewArea.setLayoutParams(overlayParams_previewArea);
                 break;
         }
@@ -585,9 +581,25 @@ public class CameraActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        Log.i("CameraPreview_Log", mCamera.toString());
+        Log.i("life-cycle","onResume");
+        if(mCamera!=null)Log.i("life-cycle", "camera reopen : " + mCamera.toString());
         if (mCamera == null) {
             cameraReOpen();
+            cameraPreview_open();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.i("life-cycle","onPause");
+        Log.i("life-cycle","kill camera? : "+ mCamera.toString());
+        if (mCamera != null) {
+            // 카메라 미리보기를 종료한다.
+            mCamera.stopPreview();
+            mCamera.setPreviewCallback(null);
+            mCamera.release();
+            mCamera = null;
         }
     }
 }

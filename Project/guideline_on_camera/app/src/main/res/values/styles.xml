@@ -15,4 +15,17 @@
         <item name="android:textColor">@color/text_black_1</item>
     </style>
 
+    <style name="Text_Subtitle">
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:fontFamily">@font/noto_sans_medium</item>
+        <item name="android:textSize">16dp</item>
+        <item name="android:textColor">@color/text_black_1</item>
+    </style>
+
+    <style name="Text_Title_Top">
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:fontFamily">@font/noto_sans_regular</item>
+        <item name="android:textSize">16dp</item>
+        <item name="android:textColor">@color/text_black</item>
+    </style>
 </resources>

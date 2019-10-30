@@ -17,6 +17,9 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+        <activity android:name=".util.CameraPopup"
+            android:screenOrientation="unspecified"
+            android:theme="@android:style/Theme.Dialog"/>
         <activity android:name=".ThumbnailActivity" />
         <activity
             android:name=".CameraActivity"
