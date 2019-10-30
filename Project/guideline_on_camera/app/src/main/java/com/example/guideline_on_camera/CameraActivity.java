@@ -61,7 +61,7 @@ public class CameraActivity extends AppCompatActivity {
     private final int CAMERA_STATE_PREVIEW = 3;
 
     private Button shotBtn;
-    private ImageView cleaner_uniform, idcard_line;
+    private ImageView face_line, idcard_line;
     private RelativeLayout previewArea, overlay_top, overlay_left, totalLayout;
     private TextView camera_notice;
     private RelativeLayout.LayoutParams overlayParams_top, overlayParams_bottom, overlayParams_previewArea;
@@ -76,22 +76,18 @@ public class CameraActivity extends AppCompatActivity {
     //view : IDCARD
     private final int IDCARD_CAMERA_VIEW = 1001;
     private final int IDCARD_CAPTURED_ERR_VIEW = 1002;
-    private final int IDCARD_CAPTURED_TIMEOUT_VIEW = 1003;
 
     //view : PROFILE
     private final int PROFILE_CAMERA_VIEW = 2001;
     private final int PROFILE_CAPTURED_ERR_VIEW = 2002;
-    private final int PROFILE_CAPTURED_TIMEOUT_VIEW = 2003;
 
     //view : FOREIGNCARD
     private final int FOREIGNCARD_CAMERA_VIEW = 3001;
     private final int FOREIGNCARD_CAPTURED_ERR_VIEW = 3002;
-    private final int FOREIGNCARD_CAPTURED_TIMEOUT_VIEW = 3003;
 
     //view : FOREIGNCARD_BACK
     private final int FOREIGNCARD_BACK_CAMERA_VIEW = 4001;
     private final int FOREIGNCARD_BACK_CAPTURED_ERR_VIEW = 4002;
-    private final int FOREIGNCARD_BACK_CAPTURED_TIMEOUT_VIEW = 4003;
 
 
     MaterialDialog progressDialog = null;
@@ -134,7 +130,7 @@ public class CameraActivity extends AppCompatActivity {
 
     private void initSetting() {
         shotBtn = findViewById(R.id.shotBtn);
-        cleaner_uniform = findViewById(R.id.cleaner_uniform);
+        face_line = findViewById(R.id.face_line);
         camera_notice = findViewById(R.id.camera_notice);
         overlay_top = findViewById(R.id.overlay_top);
 //        overlay_bottom = findViewById(R.id.overlay_bottom);
@@ -243,19 +239,21 @@ public class CameraActivity extends AppCompatActivity {
         // Todo : 카메라 화질관련해서 아직 미완임
         // 카메라 객체를 cameraPreview에서 먼저 정의해야 함으로 setContentView 보다 먼저 정의한다.
         getInstance = this;
-        switch (VIEW_TYPE) {
-            case VIEW_TYPE_IDCARD: // id card
-            case VIEW_TYPE_FOREIGNCARD: // profile
-                CAMERA_FACING = Camera.CameraInfo.CAMERA_FACING_BACK;
-                mCamera = Camera.open(CAMERA_FACING);
-                break;
-            case VIEW_TYPE_PROFILE: // profile
-                CAMERA_FACING = Camera.CameraInfo.CAMERA_FACING_FRONT;
-                mCamera = Camera.open(CAMERA_FACING);
-                break;
+        if(mCamera==null){
+            switch (VIEW_TYPE) {
+                case VIEW_TYPE_IDCARD: // id card
+                case VIEW_TYPE_FOREIGNCARD: // profile
+                    CAMERA_FACING = Camera.CameraInfo.CAMERA_FACING_BACK;
+                    mCamera = Camera.open(CAMERA_FACING);
+                    break;
+                case VIEW_TYPE_PROFILE: // profile
+                    CAMERA_FACING = Camera.CameraInfo.CAMERA_FACING_FRONT;
+                    mCamera = Camera.open(CAMERA_FACING);
+                    break;
+            }
+            Log.i("life-cycle","camera open : "+mCamera.toString());
+            Log.i("life-cycle","CAMERA_FACING : "+CAMERA_FACING);
         }
-        Log.i("life-cycle","camera open : "+mCamera.toString());
-        Log.i("life-cycle","CAMERA_FACING : "+CAMERA_FACING);
     }
 
     private void takePicture() {
@@ -425,7 +423,7 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void viewSetting_allDisappear() {
-        cleaner_uniform.setVisibility(View.GONE);
+        face_line.setVisibility(View.GONE);
         idcard_line.setVisibility(View.GONE);
     }
 
@@ -444,32 +442,15 @@ public class CameraActivity extends AppCompatActivity {
                 idcard_line.setVisibility(View.VISIBLE);
                 camera_notice.setText("인식이 안돼요! 다시 찍어주세요");
                 break;
-            case IDCARD_CAPTURED_TIMEOUT_VIEW:
-                cameraReOpen();
-                idcard_line.setVisibility(View.VISIBLE);
-                // 문구 바꾸는거 윤지님이 알려줄 예정
-                camera_notice.setText("인식이 안돼요! 다시 찍어주세요");
-                break;
 
             case PROFILE_CAMERA_VIEW:
-                shotBtn.setText("사진찍기");
                 camera_notice.setText("목과 턱을 선에 맞춰 찍어주세요");
-                cleaner_uniform.setVisibility(View.VISIBLE);
+                face_line.setVisibility(View.VISIBLE);
                 break;
             case PROFILE_CAPTURED_ERR_VIEW:
                 cameraReOpen();
+                face_line.setVisibility(View.VISIBLE);
                 camera_notice.setText("사진이 흔들렸어요! 다시 찍어주세요");
-                break;
-            case PROFILE_CAPTURED_TIMEOUT_VIEW:
-                cameraReOpen();
-                // 문구 바꾸는거 윤지님이 알려줄 예정
-                camera_notice.setText("목과 턱을 선에 맞춰 다시 찍어주세요");
-                break;
-
-            case FOREIGNCARD_CAPTURED_TIMEOUT_VIEW:
-                cameraReOpen();
-                // 문구 바꾸는거 윤지님이 알려줄 예정
-                camera_notice.setText("인식이 안돼요! 다시 찍어주세요");
                 break;
         }
     }
