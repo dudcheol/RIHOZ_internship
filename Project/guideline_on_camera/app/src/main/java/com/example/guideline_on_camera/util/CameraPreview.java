@@ -5,6 +5,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.Point;
+import android.graphics.Rect;
 import android.hardware.Camera;
 import android.util.Log;
 import android.view.Display;
@@ -16,6 +17,7 @@ import com.example.guideline_on_camera.CameraActivity;
 import com.example.guideline_on_camera.VO.DeviceInfo;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.example.guideline_on_camera.CameraActivity.mCamera;
@@ -142,9 +144,11 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
         Log.i(TAG, "surfaceDestroyed 호출");
 
+        Log.i("life-cycle","surfaceDestroyed");
         if (mCamera != null) {
             // 카메라 미리보기를 종료한다.
             mCamera.stopPreview();
+            Log.i("life-cycle","stop Preview");
             mCamera.setPreviewCallback(null);
             mCamera.release();
             mCamera = null;
@@ -260,5 +264,32 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         Log.d("CameraPreview_Log", "chose optimalSize: " + optimalSize.width + " x " + optimalSize.height);
         Log.d("CameraPreview_Log", "optimalSize ratio: " + ((double)optimalSize.width / optimalSize.height));
         return optimalSize;
+    }
+
+    Camera.AutoFocusCallback mAutoFocusCallback = new Camera.AutoFocusCallback() {
+        @Override
+        public void onAutoFocus(boolean b, Camera camera) {
+            if(b){
+                mCamera.cancelAutoFocus();
+            }
+        }
+    };
+
+    public void doTouchFocus(final Rect tfocusRect) {
+        try {
+            List<Camera.Area> focusList = new ArrayList<Camera.Area>();
+            Camera.Area focusArea = new Camera.Area(tfocusRect, 1000);
+            focusList.add(focusArea);
+
+            Camera.Parameters param = mCamera.getParameters();
+            param.setFocusAreas(focusList);
+            param.setMeteringAreas(focusList);
+            mCamera.setParameters(param);
+
+            mCamera.autoFocus(mAutoFocusCallback);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.i(TAG, "Unable to autofocus");
+        }
     }
 }

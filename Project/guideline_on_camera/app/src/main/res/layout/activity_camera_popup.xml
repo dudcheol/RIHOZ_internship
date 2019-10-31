@@ -49,10 +49,9 @@
             android:id="@+id/okBtn"
             style="@style/Text_Button"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="45dp"
             android:background="@drawable/border_gold"
             android:text="확인"
-            android:padding="10dp"
             android:onClick="onClick"
             />
     </LinearLayout>

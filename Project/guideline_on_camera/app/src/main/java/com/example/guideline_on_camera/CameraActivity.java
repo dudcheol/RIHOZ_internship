@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Point;
 import android.hardware.Camera;
+import android.media.MediaActionSound;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -28,6 +29,8 @@ import com.example.guideline_on_camera.VO.GetResponse;
 import com.example.guideline_on_camera.network.NetworkClient;
 import com.example.guideline_on_camera.util.CameraPopup;
 import com.example.guideline_on_camera.util.CameraPreview;
+import com.example.guideline_on_camera.util.DrawingView;
+import com.example.guideline_on_camera.util.PreviewSurfaceView;
 import com.example.guideline_on_camera.util.ProgressMaterialDialog;
 
 import java.io.File;
@@ -67,6 +70,8 @@ public class CameraActivity extends AppCompatActivity {
     private TextView camera_notice;
     private RelativeLayout.LayoutParams overlayParams_top, overlayParams_bottom, overlayParams_previewArea;
     private FrameLayout cameraPreviewFrame;
+    private PreviewSurfaceView cameraFocusView;
+    private DrawingView focusBox;
 
     private int VIEW_TYPE;
     public final int VIEW_TYPE_IDCARD = 1000;
@@ -143,9 +148,14 @@ public class CameraActivity extends AppCompatActivity {
         overlay_left = findViewById(R.id.overlay_left);
         totalLayout = findViewById(R.id.totalLayout);
         idcard_line = findViewById(R.id.idcard_line);
+        cameraFocusView = findViewById(R.id.cameraFocusView);
+        focusBox = findViewById(R.id.focusBox);
 
 
         cameraPreview_open();
+        cameraFocusView.setListener(cameraPreview);
+        cameraFocusView.setDrawingView(focusBox);
+
 
         switch (VIEW_TYPE){
             case VIEW_TYPE_IDCARD:
@@ -183,6 +193,9 @@ public class CameraActivity extends AppCompatActivity {
 //            } catch (IOException e) {
 //                e.printStackTrace();
 //            }
+            Log.i("life-cycle","onPictureTaken!!");
+
+            mCamera.stopPreview();
             showDialog(true, "사진 저장중입니다. 기다려주세요.");
             switch (VIEW_TYPE){
                 case VIEW_TYPE_IDCARD:
@@ -269,8 +282,17 @@ public class CameraActivity extends AppCompatActivity {
                     previewState = CAMERA_STATE_PREVIEW;
                     break;
                 default:
-                    mCamera.takePicture(null, null, mPicture);
-                    previewState = CAMERA_STATE_BUSY;
+                    mCamera.autoFocus(new Camera.AutoFocusCallback() {
+                        @Override
+                        public void onAutoFocus(boolean b, Camera camera) {
+                            if(b){
+                                MediaActionSound sound = new MediaActionSound();
+                                sound.play(MediaActionSound.SHUTTER_CLICK);
+                                mCamera.takePicture(null, null, mPicture);
+                                previewState = CAMERA_STATE_BUSY;
+                            }
+                        }
+                    });
             } // switch
         });
     }
@@ -527,6 +549,7 @@ public class CameraActivity extends AppCompatActivity {
                 previewArea.setLayoutParams(overlayParams_previewArea);
                 break;
         }
+        cameraFocusView.setLayoutParams(overlayParams_previewArea);
         Log.i("layout_check", "previewHeight: " + previewArea.getHeight());
     }
 
