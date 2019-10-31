@@ -42,7 +42,7 @@ public class NetworkClient {
 
     public interface UploadIDCard {
         @Multipart
-        @POST("/ocr/idRecognition")
+        @POST("/idRecognition")
         Call<GetResponse> uploadImage(@Part MultipartBody.Part file,
                                       @Part("description") RequestBody requestBody,
                                       @Part("angle") RequestBody angle,

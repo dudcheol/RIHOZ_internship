@@ -2,6 +2,7 @@ package com.example.guideline_on_camera.util;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.Point;
@@ -20,6 +21,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.example.guideline_on_camera.CameraActivity.getInstance;
 import static com.example.guideline_on_camera.CameraActivity.mCamera;
 
 public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
@@ -124,6 +126,20 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             // 새로 변경된 설정으로 프리뷰를 시작한다
 
             camParams.setPreviewSize(previewSize.width, previewSize.height);
+            // 내장된 카메라 자체가 auto focus를 지원하는가?
+            deviceInfo.setAutoFocusable(getInstance.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_AUTOFOCUS));
+            if(deviceInfo.isAutoFocusable()){
+                deviceInfo.setHasFocusMode(camParams.getSupportedFocusModes());
+                List<String> supportedFocusModes = deviceInfo.getHasFocusMode();
+                if(supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)){
+                    camParams.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+                }else if(supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO)){
+                    camParams.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+                }else{
+                    camParams.setFocusMode(Camera.Parameters.FOCUS_MODE_INFINITY);
+                }
+                Log.i("supportedFocusModes",supportedFocusModes.toString());
+            }
             mCamera.setParameters(camParams);
 
             Log.i(TAG, "PreviewSizes width: " + previewSize.width + "");

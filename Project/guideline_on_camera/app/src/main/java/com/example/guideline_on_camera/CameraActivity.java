@@ -285,12 +285,15 @@ public class CameraActivity extends AppCompatActivity {
                     mCamera.autoFocus(new Camera.AutoFocusCallback() {
                         @Override
                         public void onAutoFocus(boolean b, Camera camera) {
+                            MediaActionSound sound = new MediaActionSound();
                             if(b){
-                                MediaActionSound sound = new MediaActionSound();
                                 sound.play(MediaActionSound.SHUTTER_CLICK);
                                 mCamera.takePicture(null, null, mPicture);
-                                previewState = CAMERA_STATE_BUSY;
+                            } else {
+                                sound.play(MediaActionSound.SHUTTER_CLICK);
+                                mCamera.takePicture(null, null, mPicture);
                             }
+                            previewState = CAMERA_STATE_BUSY;
                         }
                     });
             } // switch

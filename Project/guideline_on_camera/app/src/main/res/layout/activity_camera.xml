@@ -51,6 +51,12 @@
             android:textSize="18dp" />
     </RelativeLayout>
 
+    <com.example.guideline_on_camera.util.PreviewSurfaceView
+        android:id="@+id/cameraFocusView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/overlay_top" />
+    
     <RelativeLayout
         android:id="@+id/previewArea"
         android:layout_width="match_parent"
@@ -72,14 +78,10 @@
             android:id="@+id/face_line"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:paddingRight="16dp"
+            android:paddingLeft="16dp"
             android:src="@drawable/face_line" />
     </RelativeLayout>
-
-    <com.example.guideline_on_camera.util.PreviewSurfaceView
-        android:id="@+id/cameraFocusView"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/overlay_top" />
 
     <com.example.guideline_on_camera.util.DrawingView
         android:id="@+id/focusBox"
