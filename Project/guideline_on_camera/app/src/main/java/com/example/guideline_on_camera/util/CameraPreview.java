@@ -135,8 +135,6 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
                     camParams.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
                 }else if(supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO)){
                     camParams.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
-                }else{
-                    camParams.setFocusMode(Camera.Parameters.FOCUS_MODE_INFINITY);
                 }
                 Log.i("supportedFocusModes",supportedFocusModes.toString());
             }

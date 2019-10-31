@@ -50,10 +50,8 @@ import static com.example.guideline_on_camera.util.CameraPreview.deviceInfo;
 import static com.example.guideline_on_camera.util.CameraPreview.getCameraDisplayOrientation;
 
 public class CameraActivity extends AppCompatActivity {
-
     public static final int MEDIA_TYPE_IMAGE = 1;
     public static final String TAG = "CAMERA_LOG";
-    private static final int IMAGE_SIZE = 720;
     private static int CAMERA_FACING;
 
     private CameraPreview cameraPreview;
@@ -68,7 +66,7 @@ public class CameraActivity extends AppCompatActivity {
     private ImageView face_line, idcard_line;
     private RelativeLayout previewArea, overlay_top, overlay_left, totalLayout;
     private TextView camera_notice;
-    private RelativeLayout.LayoutParams overlayParams_top, overlayParams_bottom, overlayParams_previewArea;
+    private RelativeLayout.LayoutParams overlayParams_previewArea;
     private FrameLayout cameraPreviewFrame;
     private PreviewSurfaceView cameraFocusView;
     private DrawingView focusBox;
@@ -98,9 +96,6 @@ public class CameraActivity extends AppCompatActivity {
 
     MaterialDialog progressDialog = null;
 
-    // Todo 1 : 레트로핏으로 넘길때 url말고 바로 filestream 자체를 보낼 수 있는 방법을 생각
-    // Todo 2 : 찍은 사진의 특정 영역의 rgb값을 빼와서 밝기체크 (?)
-    // Todo 3 : 카메라 화질설정등 ... 하는 것 알아보기
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         // 카메라 프리뷰를 전체화면으로 보여주기 위해 셋팅한다.
@@ -251,7 +246,6 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void initCameraSetting() {
-        // Todo : 카메라 화질관련해서 아직 미완임
         // 카메라 객체를 cameraPreview에서 먼저 정의해야 함으로 setContentView 보다 먼저 정의한다.
         getInstance = this;
         if(mCamera==null){
@@ -274,7 +268,6 @@ public class CameraActivity extends AppCompatActivity {
 
     private void takePicture() {
         shotBtn.setOnClickListener(v -> {
-            // Todo : 카메라 프리뷰 스테이트를 사용하여 카메라 버튼 클릭별 동작 설정
             Log.d(TAG, "takePicture");
             switch (previewState) {
                 case CAMERA_STATE_FROZEN:
@@ -473,11 +466,6 @@ public class CameraActivity extends AppCompatActivity {
         Log.i("submitCuttingInfo", "top : " + result.y);
 
         return result;
-    }
-
-    private boolean IDCard_Recognizer() {
-        // Todo : 신분증 사진이 제대로 찍혔는지 확인
-        return true;
     }
 
     private void viewSetting_allDisappear() {
