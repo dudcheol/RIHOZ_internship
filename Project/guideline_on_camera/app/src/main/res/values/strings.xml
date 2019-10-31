@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">guideline_on_camera</string>
     <string name="camera_cover_image">camera_cover_image</string>
+
+    <string name="call_center_number">1544-9422</string>
+    <string name="call_center_number_scheme">tel:1544-9422</string>
 </resources>

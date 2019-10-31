@@ -290,15 +290,24 @@ public class CameraActivity extends AppCompatActivity {
                 if (response.isSuccessful()) {
                     GetResponse res = response.body();
                     if (res.isResponse()) {
+                        String[] responseContents = {res.getTitle(),res.getContentFirst(),res.getContentSecond(),res.getButtonText()};
                         // TYPE 을 못 받아 올 경우
                         if(res.getType().equals("error")){
                             changeViewSetting(IDCARD_CAPTURED_ERR_VIEW);
                             NUMBER_OF_OCR_TRY++;
+                            if(NUMBER_OF_OCR_TRY==2){
+                                showPopup("firstTryFail",responseContents);
+                            }else if(NUMBER_OF_OCR_TRY>=3){
+                                showPopup("secondTryFail",responseContents);
+                            }
                         } else {
                             NUMBER_OF_OCR_TRY=0;
+                            // Todo : ocr 결과를 보여주는 웹으로 이동
+                            //  전달해야하는 것들은 res.getType() / res.getName() / res.getRegistrationNumFront() / res.getRegistrationNumBack()+res.getType()
                         }
+
                         // 일단 아무것도 안함
-                        Toast.makeText(getInstance, res.getName()+res.getRegistrationNumFront()+res.getRegistrationNumBack()+res.getType(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getInstance, res.getType() +" / "+ res.getName() +" / "+ res.getRegistrationNumFront() +" / "+ res.getRegistrationNumBack()+res.getType(), Toast.LENGTH_SHORT).show();
                         Log.i("response_to_server", "response1 : " +res.getName()+res.getRegistrationNumBack()+res.getRegistrationNumFront()+res.getType());
                         Log.i("response_to_server", "response2 : " +res.getTitle()+res.getContentFirst()+res.getContentSecond()+res.getButtonText());
                     } else {
@@ -314,7 +323,7 @@ public class CameraActivity extends AppCompatActivity {
                     Log.e("response_to_server", "error body : "+response.errorBody().toString());
                     Log.e("response_to_server", "error code : "+response.code());
                     showDialog(false, null);
-                    showPopup();
+                    showPopup("networkErr",null);
                 }
             }
             @Override
@@ -322,7 +331,7 @@ public class CameraActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(), "Fail : 업로드 실패", Toast.LENGTH_SHORT).show();
                 Log.e("response_to_server",t.toString());
                 showDialog(false, null);
-                showPopup();
+                showPopup("networkErr",null);
             }
         });
     }
@@ -354,7 +363,7 @@ public class CameraActivity extends AppCompatActivity {
                     Log.e("response_upload_fail", response.message());
                     Log.e("response_upload_fail", response.errorBody().toString());
                     showDialog(false, null);
-                    showPopup();
+                    showPopup("networkErr",null);
                 }
             }
             @Override
@@ -362,7 +371,7 @@ public class CameraActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(), "Fail : 업로드 실패", Toast.LENGTH_SHORT).show();
                 Log.e("response_to_server",t.toString());
                 showDialog(false, null);
-                showPopup();
+                showPopup("networkErr",null);
             }
         });
     }
@@ -407,9 +416,10 @@ public class CameraActivity extends AppCompatActivity {
         }
     }
 
-    private void showPopup(){
+    private void showPopup(String serviceCode, String[] popupContents){
         Intent intent = new Intent(getApplicationContext(), CameraPopup.class);
-        intent.putExtra("serviceCode","networkErr");
+        intent.putExtra("serviceCode",serviceCode);
+        intent.putExtra("popupContents",popupContents);
         startActivity(intent);
     }
 
